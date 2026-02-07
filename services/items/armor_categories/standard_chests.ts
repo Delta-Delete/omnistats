@@ -1,0 +1,39 @@
+
+import { Entity, EntityType, ModifierType } from '../../../types';
+import { SPECIALES } from '../../classes/speciales';
+
+// Génération dynamique de la liste des IDs pour la condition de l'armure Bushi
+const SPECIAL_CLASS_IDS = SPECIALES
+    .filter(e => e.type === EntityType.CLASS)
+    .map(e => `'${e.id}'`)
+    .join(', ');
+
+export const STANDARD_CHESTS: Entity[] = [
+  {
+    id: 'chest_bushi', type: EntityType.ITEM, name: 'Armure du Bushi',
+    slotId: 'chest', categoryId: 'armor_chest', subCategory: 'Intermédiaire',
+    description: "Donne 800 Vit.\nSi Classe Spéciale : Augmente de 25% les effets des mécaniques de classe (Tourelles, Sceaux, Decks, Corruption, Partitions).",
+    modifiers: [
+        { id: 'bushi_vit_flat', type: ModifierType.FLAT, targetStatKey: 'vit', value: '800' },
+        { 
+            id: 'bushi_spec_mastery', 
+            type: ModifierType.FLAT, 
+            targetStatKey: 'special_mastery', 
+            value: '25', 
+            condition: `[${SPECIAL_CLASS_IDS}].includes(classId)`,
+            name: 'Bonus Maîtrise Bushi'
+        },
+    ]
+  },
+  // PLACEHOLDERS GÉNÉRIQUES (Exemples)
+  {
+    id: 'chest_lourd_base', type: EntityType.ITEM, name: 'Plastron en Acier',
+    slotId: 'chest', categoryId: 'armor_chest', subCategory: 'Lourd',
+    modifiers: []
+  },
+  {
+    id: 'chest_leger_base', type: EntityType.ITEM, name: 'Tunique de Cuir',
+    slotId: 'chest', categoryId: 'armor_chest', subCategory: 'Léger',
+    modifiers: [{ id: 'ch_l_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '20' }]
+  }
+];
