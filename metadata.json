@@ -1,0 +1,5 @@
+{
+  "name": "OmniStat RPG Builder",
+  "description": "Un système de statistiques RPG entièrement personnalisable avec éditeur de règles, moteur de résolution de dépendances dynamique et créateur de personnage.",
+  "requestFramePermissions": []
+}
