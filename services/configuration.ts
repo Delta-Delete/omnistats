@@ -24,6 +24,9 @@ export const ITEM_SLOTS: ItemSlot[] = [
   { id: 'legs_bonus', name: 'Option Bottes', acceptedCategories: ['armor_option'] }, 
   
   { id: 'weapon_any', name: 'Main / Arme', acceptedCategories: ['weapon'] },
+  
+  // Slot Spécial Entomothrope (Niveau 20+)
+  { id: 'tetrachire_weapon', name: 'Bras Supplémentaires (Tétrachire)', acceptedCategories: ['weapon'] },
 
   // Modification ici : on cible les sous-catégories spécifiques pour le filtrage
   { id: 'ench_vit', name: 'Vitalité', acceptedCategories: ['Vitalité'] },
@@ -165,6 +168,7 @@ export const INITIAL_STATS: StatDefinition[] = [
 
   { id: 'inv_c', key: 'invocation_count', label: 'Nb Invocations', baseValue: 0, group: 'Hidden' },
   { id: 'inv_s', key: 'invocation_share', label: '% Partage Invoc', baseValue: 0, group: 'Hidden' },
+  { id: 'sum_flat', key: 'summon_flat_bonus', label: 'Bonus Flat Invoc', baseValue: 0, group: 'Hidden', description: 'Bonus fixe ajouté à toutes les stats de chaque invocation' },
   
   { id: 'nec_c', key: 'necro_pet_count', label: 'Nb Invoc Nécromant', baseValue: 0, group: 'Hidden' },
   { id: 'nec_s', key: 'necro_pet_share', label: '% Partage Nécromant', baseValue: 0, group: 'Hidden' },

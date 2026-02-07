@@ -2,6 +2,52 @@
 import { Entity, EntityType, ModifierType } from '../../types';
 
 export const MAGIC_ITEMS: Entity[] = [
+  // --- VÉHICULES ---
+  {
+    id: 'veh_balai',
+    type: EntityType.ITEM,
+    name: 'Balai volant',
+    slotId: 'vehicle',
+    categoryId: 'vehicle',
+    subCategory: 'Aérien',
+    description: "Un balai enchanté pour voyager dans les airs.",
+    modifiers: [
+        { id: 'bal_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100', displayTag: 'used' },
+        { id: 'bal_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '100', displayTag: 'used' },
+        { id: 'bal_d', type: ModifierType.FLAT, targetStatKey: 'dmg', value: '200', displayTag: 'used' }
+    ],
+    descriptionBlocks: [
+        {
+            title: 'Sabbat',
+            text: "La première fois que l'adversaire est touché par un CR ou un CC des joueurs véhiculés, il devient Maudit. Ce statut empêche la cible de recevoir des buffs (soin, gains de vitesse ou de dégâts) jusqu'à la fin du combat.",
+            tag: 'unblockable'
+        }
+    ]
+  },
+
+  // --- FAMILIERS ---
+  {
+    id: 'fam_hydro_cyno',
+    type: EntityType.ITEM,
+    name: "Hydro Cyno",
+    slotId: 'custom_companion', // Uses the companion slot
+    categoryId: 'familiar',
+    subCategory: 'Esprit',
+    rarity: 'exotic',
+    companionAllowed: true,
+    modifiers: [
+        { id: 'hc_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '150' },
+        { id: 'hc_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '150' }
+    ],
+    descriptionBlocks: [
+        {
+            title: "Régénération",
+            text: "Une fois pendant le combat, si la vitalité du maître de ce familier descend en dessous de 25%, sa vie est totalement régénérée. Ne marche pas si le joueur meurt avant.",
+            tag: "special"
+        }
+    ]
+  },
+
   // --- ENCHANTEMENTS (CRITIQUE) ---
   {
     id: 'e_crit_1', type: EntityType.ITEM, name: 'Ench. Critique I (+5%)',
@@ -151,34 +197,47 @@ export const MAGIC_ITEMS: Entity[] = [
     slotId: 'rebreather',
     categoryId: 'rebreather',
     rarity: 'exotic',
-    description: "**Aqua-respirateur parfait** : Transforme les malus aquatiques en bonus (Inverse la pénalité et l'ajoute en bonus).",
+    description: "**Aqua-respirateur parfait** : Une fois activé (sous l'eau), confère ses stats et transforme les malus aquatiques en bonus.",
     modifiers: [
-        { id: 'menpo_base_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '500' },
-        { id: 'menpo_base_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '200' },
+        // STATS DE BASE : Conditionnées par le toggle générique respirateur (Bouton Inventaire)
+        { 
+            id: 'menpo_base_v', 
+            type: ModifierType.FLAT, 
+            targetStatKey: 'vit', 
+            value: '500', 
+            toggleId: 'toggle_respirator_active', 
+            toggleName: 'Respirateur Actif' 
+        },
+        { 
+            id: 'menpo_base_s', 
+            type: ModifierType.FLAT, 
+            targetStatKey: 'spd', 
+            value: '200', 
+            toggleId: 'toggle_respirator_active' 
+        },
         
-        // Effet dynamique : Ajoute 2x la valeur du malus pour inverser l'effet (-15 devient +15)
-        // Utilise la stat globale 'malus_aqua'
+        // EFFET SPECIAL : Conditionné par un toggle distinct (Bouton Situationnel)
         {
             id: 'menpo_effect_v',
             type: ModifierType.ALT_PERCENT,
             targetStatKey: 'vit',
             value: '2 * (malus_aqua || 0)',
-            toggleId: 'toggle_menpo_active',
-            toggleName: 'Activer Conversion Aqua'
+            toggleId: 'toggle_menpo_effect',
+            toggleName: 'Menpō : Inversion Courants'
         },
         {
             id: 'menpo_effect_s',
             type: ModifierType.ALT_PERCENT,
             targetStatKey: 'spd',
             value: '2 * (malus_aqua || 0)',
-            toggleId: 'toggle_menpo_active'
+            toggleId: 'toggle_menpo_effect'
         },
         {
             id: 'menpo_effect_d',
             type: ModifierType.ALT_PERCENT,
             targetStatKey: 'dmg',
             value: '2 * (malus_aqua || 0)',
-            toggleId: 'toggle_menpo_active'
+            toggleId: 'toggle_menpo_effect'
         }
     ]
   },
@@ -207,6 +266,19 @@ export const MAGIC_ITEMS: Entity[] = [
             text: "Les ennemis ayant au moins 2 capacités spéciales (activées ou pas), perdent **{{15 * (1 + (effect_booster || 0)/100)}}%** de toutes leurs statistiques par tour.",
             tag: "passive"
         }
+    ]
+  },
+  {
+    id: 'art_pendentif_hivernal',
+    type: EntityType.ITEM,
+    name: "Pendentif hivernal",
+    slotId: 'artifact',
+    categoryId: 'artifact',
+    description: "Un flocon éternel. +10% de stats si le RP se déroule dans l'Est.",
+    modifiers: [
+        { id: 'ph_v', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '10', toggleId: 'toggle_rp_east', toggleName: 'RP : Est', toggleGroup: 'rp_location' },
+        { id: 'ph_s', type: ModifierType.ALT_PERCENT, targetStatKey: 'spd', value: '10', toggleId: 'toggle_rp_east', toggleGroup: 'rp_location' },
+        { id: 'ph_d', type: ModifierType.ALT_PERCENT, targetStatKey: 'dmg', value: '10', toggleId: 'toggle_rp_east', toggleGroup: 'rp_location' }
     ]
   }
 ];

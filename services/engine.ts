@@ -702,6 +702,9 @@ export const calculateStats = (
 
   const activeSummons: ActiveSummon[] = [];
   const finalContext = finalResults.evalContext;
+  
+  // NEW: Retrieve Flat Bonus for Summons
+  const summonFlatBonus = finalResults.results['summon_flat_bonus']?.finalValue || 0;
 
   const summonContext: EvaluationContext = {
       ...finalContext,
@@ -728,9 +731,9 @@ export const calculateStats = (
                        name: s.name,
                        count: Math.floor(count),
                        stats: {
-                           vit: Math.ceil(evaluateFormula(s.stats.vit, summonContext)),
-                           spd: Math.ceil(evaluateFormula(s.stats.spd, summonContext)),
-                           dmg: Math.ceil(evaluateFormula(s.stats.dmg, summonContext))
+                           vit: Math.ceil(evaluateFormula(s.stats.vit, summonContext)) + summonFlatBonus,
+                           spd: Math.ceil(evaluateFormula(s.stats.spd, summonContext)) + summonFlatBonus,
+                           dmg: Math.ceil(evaluateFormula(s.stats.dmg, summonContext)) + summonFlatBonus
                        }
                    });
                }
@@ -750,9 +753,9 @@ export const calculateStats = (
           count: invCount,
           sharePercent: rawShare,
           stats: {
-              vit: Math.ceil(getPreFinalStat('vit') * splitFactor),
-              spd: Math.ceil(getPreFinalStat('spd') * splitFactor),
-              dmg: Math.ceil(getPreFinalStat('dmg') * splitFactor),
+              vit: Math.ceil(getPreFinalStat('vit') * splitFactor) + summonFlatBonus,
+              spd: Math.ceil(getPreFinalStat('spd') * splitFactor) + summonFlatBonus,
+              dmg: Math.ceil(getPreFinalStat('dmg') * splitFactor) + summonFlatBonus,
           }
       });
   }
@@ -767,9 +770,9 @@ export const calculateStats = (
           count: necroCount,
           sharePercent: rawNecroShare,
           stats: {
-              vit: Math.ceil(getPreFinalStat('vit') * necroShare),
-              spd: Math.ceil(getPreFinalStat('spd') * necroShare),
-              dmg: Math.ceil(getPreFinalStat('dmg') * necroShare),
+              vit: Math.ceil(getPreFinalStat('vit') * necroShare) + summonFlatBonus,
+              spd: Math.ceil(getPreFinalStat('spd') * necroShare) + summonFlatBonus,
+              dmg: Math.ceil(getPreFinalStat('dmg') * necroShare) + summonFlatBonus,
           }
       });
   }

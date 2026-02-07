@@ -17,6 +17,29 @@ export const SHIELDS: Entity[] = [
     ]
   },
   {
+    id: 'bouclier_nordique',
+    type: EntityType.ITEM,
+    name: 'Bouclier nordique',
+    slotId: 'weapon_any',
+    categoryId: 'weapon',
+    subCategory: 'Boucliers',
+    equipmentCost: 1,
+    description: "+10% Dégâts si le RP est au Nord.",
+    modifiers: [
+        { id: 'bn_vit', type: ModifierType.FLAT, targetStatKey: 'vit', value: '250' },
+        { id: 'bn_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '-30' },
+        { 
+            id: 'bn_dmg', 
+            type: ModifierType.ALT_PERCENT, 
+            targetStatKey: 'dmg', 
+            value: '10', 
+            toggleId: 'toggle_rp_north', 
+            toggleName: 'RP : Nord', 
+            toggleGroup: 'rp_location' // Grouped with other Cardinal Points
+        }
+    ]
+  },
+  {
     id: 'bouclier_eclat_dragonnier',
     type: EntityType.ITEM,
     name: "L’Éclat du Dragonnier",

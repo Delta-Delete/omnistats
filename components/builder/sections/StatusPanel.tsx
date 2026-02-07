@@ -48,7 +48,8 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
         'pos_mante', 'pos_serpent', 'pos_lievre', 'pos_singe', 
         'toggle_protection_ally', 'toggle_zenitude', 'toggle_lutteur_unarmed',
         'career_card_spade', 'career_card_club', 'career_card_diamond', 'career_card_heart', 'career_card_royal',
-        'career_athlete_second_wind'
+        'career_athlete_second_wind',
+        'toggle_respirator_active' // ADDED: Hides the main respirator toggle (handled in Inventory)
     ];
 
     const toggleConfig = React.useMemo(() => {
@@ -85,10 +86,19 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
         setSelection(prev => { 
             const newToggles = { ...prev.toggles }; 
             if (groupName) { 
+                // LOGIC UPDATE: Allow Deselection in Groups
+                const wasActive = newToggles[id];
                 const groupItems = toggleConfig.groups[groupName] || []; 
+                
+                // 1. Reset all in group to false
                 groupItems.forEach(item => { 
-                    newToggles[item.id] = (item.id === id); 
+                    newToggles[item.id] = false; 
                 }); 
+                
+                // 2. Only activate if it wasn't already active (Toggle behavior)
+                if (!wasActive) {
+                    newToggles[id] = true;
+                }
             } else { 
                 newToggles[id] = !newToggles[id]; 
             } 
@@ -256,7 +266,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
                         )}
                         {Object.entries(toggleConfig.groups).map(([groupName, items]) => (
                             <div key={groupName} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 border-b border-slate-800 pb-1">{groupName}</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 border-b border-slate-800 pb-1">{groupName.replace('rp_location', 'Localisation RP')}</label>
                                 <div className="flex flex-col gap-2">
                                     {(items as {id: string, label: string}[]).map(t => { 
                                         const isActive = selection.toggles[t.id] || false; 

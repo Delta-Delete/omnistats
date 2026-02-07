@@ -64,15 +64,44 @@ export const ItemPickerModal: React.FC<{
                 return false;
             }
 
-            // 1. Category Filter
-            if (acceptedCategories && acceptedCategories.length > 0) {
-                 if (!item.categoryId) return false;
-                 const isSubAllowed = item.subCategory && acceptedCategories.includes(item.subCategory);
-                 const isCatAllowed = item.categoryId && acceptedCategories.includes(item.categoryId);
-                 
-                 if (!isSubAllowed && !isCatAllowed) return false;
-            } else if (slot.acceptedCategories && slot.acceptedCategories.length > 0) {
-                 if (!item.categoryId || !slot.acceptedCategories.includes(item.categoryId)) return false;
+            // --- TETRACHIRE SPECIFIC LOGIC ---
+            if (slot.id === 'tetrachire_weapon') {
+                const sub = item.subCategory || '';
+                // 1. Exclude Special Classes Weapons & Staves
+                const forbidden = [
+                    'Bâtons d’éther', 'Bâtons', 
+                    'Armes technologiques', 'Boucliers technologiques', 
+                    'Armes sacrées', 'Decks'
+                ];
+                if (forbidden.includes(sub)) return false;
+                if (sub.startsWith('Instrument')) return false;
+
+                // 2. Must be Weapon or Shield
+                const isWeaponOrShield = item.categoryId === 'weapon' || sub === 'Boucliers';
+                if (!isWeaponOrShield) return false;
+
+                // 3. Hand Cost Logic
+                const cost = item.equipmentCost || 0;
+                
+                if (context.racialCompetenceActive) {
+                    // ACTIVE: Up to 2H allowed, NO fusion
+                    if (cost > 2) return false;
+                    if (item.id.startsWith('fused_') || sub === 'Amalgame') return false; 
+                } else {
+                    // PASSIVE: 1H only
+                    if (cost > 1) return false;
+                }
+            } else {
+                // STANDARD LOGIC FOR OTHER SLOTS
+                if (acceptedCategories && acceptedCategories.length > 0) {
+                     if (!item.categoryId) return false;
+                     const isSubAllowed = item.subCategory && acceptedCategories.includes(item.subCategory);
+                     const isCatAllowed = item.categoryId && acceptedCategories.includes(item.categoryId);
+                     
+                     if (!isSubAllowed && !isCatAllowed) return false;
+                } else if (slot.acceptedCategories && slot.acceptedCategories.length > 0) {
+                     if (!item.categoryId || !slot.acceptedCategories.includes(item.categoryId)) return false;
+                }
             }
             
             // 2. Search Filter
@@ -94,9 +123,16 @@ export const ItemPickerModal: React.FC<{
 
             return true;
         });
-    }, [allItems, acceptedCategories, slot, search, catFilter, context.classId]);
+    }, [allItems, acceptedCategories, slot, search, catFilter, context.classId, context.racialCompetenceActive]);
 
     const relevantSubCategories = useMemo(() => {
+        // If Tetrachire, show all weapon subcats present in filtered list
+        if (slot.id === 'tetrachire_weapon') {
+            const set = new Set<string>();
+            filteredItems.forEach(item => { if (item.subCategory) set.add(item.subCategory); });
+            return Array.from(set).sort();
+        }
+
         const targetIds = acceptedCategories || slot.acceptedCategories || [];
         const set = new Set<string>();
         categories.forEach(cat => { if (targetIds.includes(cat.id)) { (cat.subCategories || []).forEach(sc => set.add(sc)); } });
@@ -111,7 +147,7 @@ export const ItemPickerModal: React.FC<{
         return Array.from(set)
             .filter(sc => isSubCategoryAllowed(sc, context.classId))
             .sort();
-    }, [categories, slot, acceptedCategories, allItems, context.classId]);
+    }, [categories, slot, acceptedCategories, allItems, context.classId, filteredItems]);
 
     const primaryStatKeys = useMemo(() => {
         return new Set(stats.filter(s => s.group === 'Primary').map(s => s.key));

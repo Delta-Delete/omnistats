@@ -22,8 +22,9 @@ export const CAESTUS: Entity[] = [
             type: ModifierType.FLAT, 
             targetStatKey: 'dmg', 
             value: '30', 
-            toggleId: 'toggle_cestes_region_ocean',
-            toggleName: 'Région : Mers & Océans',
+            toggleId: 'toggle_rp_ocean', // Unified ID
+            toggleName: 'RP : Mers & Océans',
+            toggleGroup: 'rp_location', // Unified Group
             isPerTurn: true
         },
         { 
@@ -31,7 +32,8 @@ export const CAESTUS: Entity[] = [
             type: ModifierType.FLAT, 
             targetStatKey: 'spd', 
             value: '20', 
-            toggleId: 'toggle_cestes_region_ocean',
+            toggleId: 'toggle_rp_ocean',
+            toggleGroup: 'rp_location',
             isPerTurn: true
         }
     ]

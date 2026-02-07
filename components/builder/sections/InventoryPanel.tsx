@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap, Gem, Award, Lock, Trash2, Package, Backpack, Sliders, Activity, Zap as SpdIcon, Sword } from 'lucide-react';
+import { Zap, Gem, Award, Lock, Trash2, Package, Backpack, Sliders, Activity, Zap as SpdIcon, Sword, Power, Waves } from 'lucide-react';
 import { PlayerSelection, Entity, ItemSlot, ItemConfigValues, ModifierType } from '../../../types';
 import { SlotSelector } from '../SlotSelector';
 import { toFantasyTitle, calculateEnhancedStats, getStatStyle } from '../utils';
@@ -135,6 +135,18 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
         );
     };
 
+    const toggleRespirator = () => {
+        setSelection(prev => ({
+            ...prev,
+            toggles: {
+                ...prev.toggles,
+                toggle_respirator_active: !prev.toggles['toggle_respirator_active']
+            }
+        }));
+    };
+
+    const isRespiratorActive = selection.toggles['toggle_respirator_active'];
+
     return (
         <div className="space-y-6 mt-6">
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl">
@@ -149,12 +161,33 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl">
                 <h4 className="text-lg font-perrigord text-slate-300 flex items-center tracking-wide"><Gem size={20} className="mr-2" /> {toFantasyTitle("Accessoires & Transport")}</h4>
                 <div className="grid grid-cols-2 gap-4 mt-3">
-                    {slots.filter(s => ['artifact', 'rebreather', 'vehicle', 'backpack'].includes(s.id)).map(slot => (
-                        <div key={slot.id} className="flex flex-col">
-                            <label className="text-xs text-slate-500 mb-1">{slot.name}</label>
-                            <SlotSelector slot={slot} allItems={allItems} selectedItemId={selection.equippedItems[slot.id]} onOpenPicker={() => openItemPicker(slot.id, slot.acceptedCategories)} onClear={() => equipFixedItem(slot.id, 'none')} playerContext={context} />
-                        </div>
-                    ))}
+                    {slots.filter(s => ['artifact', 'rebreather', 'vehicle', 'backpack'].includes(s.id)).map(slot => {
+                        const hasEquipped = !!selection.equippedItems[slot.id];
+                        
+                        return (
+                            <div key={slot.id} className="flex flex-col">
+                                <div className="flex justify-between items-end mb-1">
+                                    <label className="text-xs text-slate-500">{slot.name}</label>
+                                    
+                                    {/* RESPIRATOR TOGGLE SWITCH */}
+                                    {slot.id === 'rebreather' && hasEquipped && (
+                                        <button 
+                                            onClick={toggleRespirator}
+                                            className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase border transition-all duration-300 ${
+                                                isRespiratorActive 
+                                                ? 'bg-cyan-900/30 border-cyan-500 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                                                : 'bg-slate-950 border-slate-700 text-slate-600 hover:border-slate-500'
+                                            }`}
+                                        >
+                                            {isRespiratorActive ? <Waves size={10} className="animate-pulse" /> : <Power size={10} />}
+                                            {isRespiratorActive ? 'ACTIF' : 'OFF'}
+                                        </button>
+                                    )}
+                                </div>
+                                <SlotSelector slot={slot} allItems={allItems} selectedItemId={selection.equippedItems[slot.id]} onOpenPicker={() => openItemPicker(slot.id, slot.acceptedCategories)} onClear={() => equipFixedItem(slot.id, 'none')} playerContext={context} />
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 

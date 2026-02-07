@@ -35,6 +35,14 @@ export const RACES: Entity[] = [
   {
     id: 'entomothrope', type: EntityType.RACE, name: 'Entomothrope',
     description: 'Race insectoïde. CRIT {{m_ento_crit}}, CRIT MAX {{m_ento_crit_m}}. Sélectionnez une sous-race.',
+    descriptionBlocks: [
+        {
+            title: "Tétrachire (Niv 20+)",
+            text: "Peut porter une arme à une main supplémentaire (Standard, hors spécial/tech, bouclier inclus).",
+            tag: "passive",
+            condition: "level >= 20"
+        }
+    ],
     modifiers: [
         { id: 'm_ento_crit', type: ModifierType.FLAT, targetStatKey: 'crit_primary', value: '25' },
         { id: 'm_ento_crit_m', type: ModifierType.FLAT, targetStatKey: 'crit_secondary', value: '50' }

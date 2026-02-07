@@ -2,6 +2,33 @@
 import { Entity, EntityType, ModifierType } from '../types';
 
 export const OTHERS: Entity[] = [
+  // --- SET ESSENCE INVOCATOIRE ---
+  {
+      id: 'set_essence_invocatoire',
+      type: EntityType.ITEM_SET,
+      name: "Set : Essence Invocatoire",
+      imageUrl: 'https://i.postimg.cc/pLHxKzqx/75e0a42b9e62d01f7e97698daba4fcca.jpg',
+      descriptionBlocks: [
+          {
+              title: "Maître de la Meute (3 pièces)",
+              text: "Bonus aux invocations selon leur nombre :\n- 1 à 2 : +150 all stats\n- 3 à 5 : +200 all stats\n- 6 à 8 : +250 all stats\n- 9 et + : +300 all stats",
+              tag: "special",
+              condition: "countSet('set_essence_invocatoire') >= 3"
+          }
+      ],
+      modifiers: [
+          {
+              id: 'set_ei_bonus',
+              type: ModifierType.FLAT,
+              targetStatKey: 'summon_flat_bonus',
+              // Dynamic Calculation based on total summons (Animist + Necro)
+              value: '(invocation_count + necro_pet_count) >= 9 ? 300 : (invocation_count + necro_pet_count) >= 6 ? 250 : (invocation_count + necro_pet_count) >= 3 ? 200 : 150',
+              condition: "countSet('set_essence_invocatoire') >= 3",
+              name: "Bonus Meute Dynamique"
+          }
+      ]
+  },
+
   // --- FACTIONS / SETS ---
   
   // --- C.O IDENTITY (Pure Faction) ---

@@ -6,6 +6,16 @@ export const MAGIQUES: Entity[] = [
   {
     id: 'animistes', type: EntityType.CLASS, name: 'Animistes',
     description: "Invocateur. Meute: 1(Lvl 5-9), 2(Lvl 10-19), 3(Lvl 20-29), 4(Lvl 30-39), 5(Lvl 40+). Partage 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^ stats/meute. Armes limitées (Sceptres, Épées, Tonfas, Dagues, Fouets, Boucliers) et 2 slots max. Compagnon interdit (Monture/Familier seulement).",
+    descriptionBlocks: [
+        {
+            text: "Peut invoquer jusqu'à {{invocation_count}} invocations qui se répartissent 50% des stats du joueur.",
+            tag: "unblockable"
+        },
+        {
+            text: "Intouchable tant que des invocations sont vivantes."
+            // tag removed
+        }
+    ],
     modifiers: [
       { id: 'c_ani_hp', type: ModifierType.FLAT, targetStatKey: 'vit', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
       { id: 'c_ani_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },

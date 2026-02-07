@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Shield, Check, Sword, Hammer, Plus, Music, Dog, Car, Zap, User, X } from 'lucide-react';
+import { Shield, Check, Sword, Hammer, Plus, Music, Dog, Car, Zap, User, X, Grip } from 'lucide-react';
 import { PlayerSelection, Entity, ItemSlot, StatDefinition, StatResult, CalculationResult, EntityType } from '../../../types';
 import { SlotSelector } from '../SlotSelector';
 import { evaluateFormula } from '../../../services/engine';
@@ -100,6 +100,26 @@ export const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
             return { ...prev, weaponUpgradesVit: newUpgrades };
         });
     };
+
+    // --- TETRACHIRE LOGIC (Entomothrope) ---
+    // Rule: Race Entomothrope, Level 20+, Class allows > 1 slot (so cap > 1)
+    const isEntomothrope = selection.raceId === 'entomothrope' || 
+                           allItems.find(e => e.id === selection.raceId)?.parentId === 'entomothrope';
+    
+    // Weapon Cap > 1 means NOT restricted to 1 slot (Archers, Virtuoses are restricted)
+    const canUseTetrachire = isEntomothrope && selection.level >= 20 && weaponCap > 1;
+
+    // Cleanup Tetrachire if conditions lost
+    useEffect(() => {
+        if (!canUseTetrachire && selection.equippedItems['tetrachire_weapon']) {
+            setSelection(prev => {
+                const newEquipped = { ...prev.equippedItems };
+                delete newEquipped['tetrachire_weapon'];
+                return { ...prev, equippedItems: newEquipped };
+            });
+        }
+    }, [canUseTetrachire, selection.equippedItems, setSelection]);
+
 
     return (
         <div className="space-y-6 mt-6">
@@ -262,6 +282,28 @@ export const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     <Plus size={14} className="mr-2" /> Ajouter une Arme
                   </button>
               </div>
+
+              {/* TETRACHIRE SLOT (Entomothrope Lvl 20+ Bonus) */}
+              {canUseTetrachire && (
+                  <div className="mt-4 pt-4 border-t border-slate-800 animate-in fade-in slide-in-from-left-2">
+                      <div className="flex items-center mb-2">
+                          <Grip size={14} className="text-cyan-400 mr-2" />
+                          <span className="text-xs font-bold uppercase text-cyan-300">Bras Supplémentaires (Tétrachire)</span>
+                          <span className="ml-2 text-[9px] text-slate-500 bg-slate-950 px-1.5 rounded border border-slate-800">
+                              {selection.racialCompetenceActive ? "Mode Actif : 2 Mains autorisé" : "Passif : 1 Main uniquement"}
+                          </span>
+                      </div>
+                      <SlotSelector 
+                          slot={{ id: 'tetrachire_weapon', name: 'Arme Bonus', acceptedCategories: ['weapon'] }} 
+                          allItems={allItems} 
+                          selectedItemId={selection.equippedItems['tetrachire_weapon']} 
+                          // Passing 'tetrachire_weapon' as slotId triggers specific filter logic in ItemPickerModal
+                          onOpenPicker={() => openItemPicker('tetrachire_weapon', ['weapon'])} 
+                          onClear={() => equipFixedItem('tetrachire_weapon', 'none')} 
+                          playerContext={context} 
+                      />
+                  </div>
+              )}
             </div>
 
             {/* PARTITIONS */}

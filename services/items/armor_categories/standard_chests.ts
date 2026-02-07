@@ -10,6 +10,38 @@ const SPECIAL_CLASS_IDS = SPECIALES
 
 export const STANDARD_CHESTS: Entity[] = [
   {
+    id: 'chest_robe_mage',
+    type: EntityType.ITEM,
+    name: "Robe de mage",
+    slotId: 'chest',
+    categoryId: 'armor_chest',
+    subCategory: 'Léger',
+    // Description removed as requested
+    modifiers: [
+        {
+            id: 'c_robe_mage_v',
+            type: ModifierType.FLAT,
+            targetStatKey: 'vit',
+            value: '300',
+            condition: "(guildIds && guildIds.includes('guild_institut_magie')) || careerId === 'career_institut'"
+        }
+    ]
+  },
+  {
+    id: 'chest_essence_invocatoire',
+    type: EntityType.ITEM,
+    name: "Tunique d'essence invocatoire",
+    slotId: 'chest',
+    categoryId: 'armor_chest',
+    subCategory: 'Panoplie',
+    rarity: 'exotic',
+    setId: 'set_essence_invocatoire',
+    description: "**Exotique**. Pièce du set 'Essence invocatoire'. +100 Vit.",
+    modifiers: [
+      { id: 'c_ess_vit', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100' }
+    ]
+  },
+  {
     id: 'chest_bushi', type: EntityType.ITEM, name: 'Armure du Bushi',
     slotId: 'chest', categoryId: 'armor_chest', subCategory: 'Intermédiaire',
     description: "Donne 800 Vit.\nSi Classe Spéciale : Augmente de 25% les effets des mécaniques de classe (Tourelles, Sceaux, Decks, Corruption, Partitions).",

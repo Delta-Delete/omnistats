@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll } from 'lucide-react';
+import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { CalculationResult, StatDefinition, StatResult, StatDetail, EntityType } from '../../types';
 import { getStatStyle, getTagLabel, getTagColor, AnimatedCounter, CollapsibleDescription, toFantasyTitle } from './utils';
@@ -64,6 +64,13 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
         (critSecondary.finalValue > (critPrimary?.finalValue || 0)) || 
         showHiddenStats
     );
+
+    // --- TEAM SPEED CALCULATION ---
+    const totalSummonSpeed = useMemo(() => {
+        return result.activeSummons.reduce((acc, s) => acc + (s.stats.spd * s.count), 0);
+    }, [result.activeSummons]);
+
+    const totalTeamSpeed = (result.stats['spd']?.finalValue || 0) + totalSummonSpeed;
 
     // Helper to render clean numbers in tooltip
     const renderVal = (val: number, isPercent = false, forcePlus = false) => {
@@ -143,6 +150,18 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                                 <span>Base {result.stats['spd']?.base} <span className="text-amber-500">+{result.stats['spd']?.finalValue - result.stats['spd']?.base}</span></span>
                                 {renderPerTurn(result.stats['spd'], 'text-amber-400')}
                             </div>
+                            
+                            {/* TEAM SPEED INDICATOR */}
+                            {totalSummonSpeed > 0 && (
+                                <div className="mt-2 pt-2 border-t border-amber-500/20 flex items-center justify-between animate-in fade-in slide-in-from-bottom-1">
+                                    <span className="text-[9px] font-bold text-amber-200/70 uppercase tracking-wider flex items-center" title="Vitesse cumulée (Joueur + Invocations)">
+                                        <Users size={10} className="mr-1" /> Total Équipe
+                                    </span>
+                                    <span className="text-sm font-mono font-bold text-amber-300">
+                                        {totalTeamSpeed}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="bg-slate-950/50 border border-rose-500/30 p-3 rounded-lg relative overflow-hidden group">
                             <div className="flex justify-between items-start mb-1">
