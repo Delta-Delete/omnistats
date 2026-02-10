@@ -12,9 +12,9 @@ export const MAGIC_ITEMS: Entity[] = [
     subCategory: 'Aérien',
     description: "Un balai enchanté pour voyager dans les airs.",
     modifiers: [
-        { id: 'bal_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100', displayTag: 'used' },
-        { id: 'bal_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '100', displayTag: 'used' },
-        { id: 'bal_d', type: ModifierType.FLAT, targetStatKey: 'dmg', value: '200', displayTag: 'used' }
+        { id: 'bal_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100' },
+        { id: 'bal_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '100' },
+        { id: 'bal_d', type: ModifierType.FLAT, targetStatKey: 'dmg', value: '200' }
     ],
     descriptionBlocks: [
         {

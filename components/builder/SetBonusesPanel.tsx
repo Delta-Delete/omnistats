@@ -4,6 +4,7 @@ import { Package, Unlock, Lock, Scale, Info } from 'lucide-react';
 import { Entity, EntityType, Modifier } from '../../types';
 import { evaluateFormula } from '../../services/engine';
 import { getTagColor, getTagLabel, parseRichText, toFantasyTitle } from './utils';
+import { CollapsibleCard } from '../ui/Card';
 
 interface SetBonusesPanelProps {
     activeEntities: Entity[];
@@ -195,11 +196,11 @@ export const SetBonusesPanel: React.FC<SetBonusesPanelProps> = ({ activeEntities
     if (activeSetsDetails.length === 0) return null;
 
     return (
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
-                <h4 className="text-lg font-perrigord text-slate-300 flex items-center tracking-wide"><Package size={20} className="mr-2" /> {toFantasyTitle("Bonus de Panoplie")}</h4>
-            </div>
-            
+        <CollapsibleCard 
+            id="set_bonuses_panel"
+            title={toFantasyTitle("Bonus de Panoplie")} 
+            icon={Package}
+        >
             <div className="space-y-6">
                 {activeSetsDetails.map((det, idx) => (
                     <div key={idx} className="bg-slate-950/30 rounded-xl border border-slate-800 overflow-hidden">
@@ -281,6 +282,6 @@ export const SetBonusesPanel: React.FC<SetBonusesPanelProps> = ({ activeEntities
                     </div>
                 ))}
             </div>
-        </div>
+        </CollapsibleCard>
     );
 };

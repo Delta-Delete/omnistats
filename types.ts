@@ -119,9 +119,11 @@ export interface Entity {
   categoryId?: string;
   subCategory?: string;
   equipmentCost?: number; // For Weapons (1 or 2 points)
+  goldCost?: number; // NEW: Prix en Or
   rarity?: Rarity; // NEW: Rarity system (normal, exotic, epic, legendary)
   tags?: string[]; // Optional tags for items
   isCraftable?: boolean; // Indicates if the item can be crafted by players
+  isTungsten?: boolean; // NEW: Indicates if the item is related to Tungsten (Custom Icon)
   
   // Visual & Faction props
   imageUrl?: string; // NEW: URL for Faction Logo or Item Image
@@ -190,6 +192,26 @@ export interface StatResult {
   trace: string[]; // Detailed log
 }
 
+// NEW: Structures pour le détail des calculs d'invocation
+export interface BreakdownComponent {
+    label: string;
+    value: string | number;
+    isHeader?: boolean; // If true, simpler display
+    isResult?: boolean; // If true, simpler display
+}
+
+export interface SummonStatBreakdown {
+    total: number;
+    formula?: string; // Optional raw formula
+    components: BreakdownComponent[];
+}
+
+export interface ActiveSummonBreakdown {
+    vit: SummonStatBreakdown;
+    spd: SummonStatBreakdown;
+    dmg: SummonStatBreakdown;
+}
+
 // NEW: Resolved Summon for UI Display
 export interface ActiveSummon {
     id?: string; // Definition ID for tracking/renaming
@@ -202,6 +224,7 @@ export interface ActiveSummon {
         spd: number;
         dmg: number;
     };
+    breakdown?: ActiveSummonBreakdown; // NEW: Details for tooltip
 }
 
 export interface CalculationResult {

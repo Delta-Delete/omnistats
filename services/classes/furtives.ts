@@ -44,7 +44,7 @@ export const FURTIVES: Entity[] = [
         {
             title: "Carreaux spéciaux",
             isCollapsible: true,
-            text: "- Carreau orc : Réduit l'attaque de la cible de 25% ^^ +{{ 25 * ((effect_booster || 0)/100) }}% ^^.\n- Carreau perforant : La cible perd 20% ^^ +{{ 20 * ((effect_booster || 0)/100) }}% ^^ de sa vitalité à la fin du tour.\n- Carreau glacé : La cible perd 10% ^^ +{{ 10 * ((effect_booster || 0)/100) }}% ^^ de sa vitesse par tour.",
+            text: "- Carreau orc : Réduit l'attaque de la cible de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^.\n- Carreau perforant : La cible perd 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ de sa vitalité à la fin du tour.\n- Carreau glacé : La cible perd 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de sa vitesse par tour.",
             tag: "special"
         }
     ],
@@ -59,7 +59,7 @@ export const FURTIVES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Œil de faucon',
     parentId: 'archers',
-    description: "Augmente les dégâts de vos armes à distance de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^.",
+    description: "Augmente les dégâts de vos armes à distance de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^.",
     modifiers: [
         {
             id: 'spec_of_dmg',
@@ -94,7 +94,7 @@ export const FURTIVES: Entity[] = [
         {
             title: "Flèches spéciales",
             isCollapsible: true,
-            text: "- Flèche elfique : Dégâts +25% ^^ +{{ 25 * ((effect_booster || 0)/100) }}% ^^ sur l'attaque.\n- Flèche furtive : +20% ^^ +{{ 20 * ((effect_booster || 0)/100) }}% ^^ Vitesse (Fin de tour).\n- Flèche enflammée : Cible perd 10% ^^ +{{ 10 * ((effect_booster || 0)/100) }}% ^^ Vit/tour.",
+            text: "- Flèche elfique : Dégâts +25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^ sur l'attaque.\n- Flèche furtive : +20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ Vitesse (Fin de tour).\n- Flèche enflammée : Cible perd 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ Vit/tour.",
             tag: "special"
         }
     ],
@@ -125,7 +125,7 @@ export const FURTIVES: Entity[] = [
             tag: "passive"
         },
         {
-            text: "Activez ce bonus si votre cible possède plus de Vitalité que vous pour gagner +60% ^^ +{{60 * ((effect_booster || 0)/100)}}% ^^ de Dégâts Finaux.",
+            text: "Activez ce bonus si votre cible possède plus de Vitalité que vous pour gagner +60% ^^ +{{(60 * ((effect_booster || 0)/100))}}% ^^ de Dégâts Finaux.",
             tag: "conditionnel",
             title: "Dégâts Finaux"
         }
@@ -162,12 +162,12 @@ export const FURTIVES: Entity[] = [
     parentId: 'assassins',
     descriptionBlocks: [
         {
-            text: "À chaque attaque réussie, l'Assassin place un marqueur de 15% ^^ +{{15 * ((effect_booster || 0)/100)}}% ^^ sur la cible (cumulable 4x). Ces marqueurs augmentent les dégâts reçus par la cible.",
+            text: "À chaque attaque réussie, l'Assassin place un marqueur de 15% ^^ +{{(15 * ((effect_booster || 0)/100))}}% ^^ sur la cible (cumulable 4x). Ces marqueurs augmentent les dégâts reçus par la cible.",
             tag: "active",
             title: "Marquage d'Équipe"
         },
         {
-            text: "Les effets des Poisons utilisés lors d'un combat sont augmentés de 50% ^^ +{{50 * ((effect_booster || 0)/100 + (poison_boost || 0)/100)}}% ^^.",
+            text: "Les effets des Poisons utilisés lors d'un combat sont augmentés de 50% ^^ +{{(50 * ((effect_booster || 0)/100 + (poison_boost || 0)/100))}}% ^^.",
             tag: "passive",
             title: "Toxicologie Avancée"
         }
@@ -186,7 +186,7 @@ export const FURTIVES: Entity[] = [
   },
   {
     id: 'spec_celerite', type: EntityType.SPECIALIZATION, name: 'Célérité', parentId: 'guetteurs',
-    description: "Si équipé d'une Griffe ou d'une Fronde, la vitesse est augmentée de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^ (Final).",
+    description: "Si équipé d'une Griffe ou d'une Fronde, la vitesse est augmentée de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^ (Final).",
     modifiers: [
         {
             id: 'm_cel_spd',
@@ -210,7 +210,7 @@ export const FURTIVES: Entity[] = [
             title: "Réflexe de Survie"
         },
         {
-            text: "La prochaine attaque subie est réduite de 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^.\n(Cumulable : Si 2 Échecs Critiques, les 2 prochaines attaques sont réduites).",
+            text: "La prochaine attaque subie est réduite de 50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^.\n(Cumulable : Si 2 Échecs Critiques, les 2 prochaines attaques sont réduites).",
             tag: "conditionnel",
             title: "Atténuation des Dégâts"
         }
@@ -229,7 +229,7 @@ export const FURTIVES: Entity[] = [
             title: "Surprise Totale"
         },
         {
-            text: "Activez ce bonus lors du premier tour pour augmenter les dégâts de 20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^ sur toutes les cibles.",
+            text: "Activez ce bonus lors du premier tour pour augmenter les dégâts de 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ sur toutes les cibles.",
             tag: "conditionnel",
             title: "Assaut Initial"
         }
@@ -283,7 +283,7 @@ export const FURTIVES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Connaissance du terrain',
     parentId: 'rodeurs',
-    description: "Le Rôdeur exploite l'environnement à son avantage. Activez le bonus pour gagner +20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^ toutes stats si vous êtes en terrain connu.",
+    description: "Le Rôdeur exploite l'environnement à son avantage. Activez le bonus pour gagner +20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ toutes stats si vous êtes en terrain connu.",
     modifiers: [
         { 
             id: 'm_terr_vit', 
@@ -374,7 +374,7 @@ export const FURTIVES: Entity[] = [
     parentId: 'voleurs',
     descriptionBlocks: [
         {
-            text: "À chaque Coup Critique, le voleur vole et absorbe 20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^ de la vitalité du plus puissant adversaire encore vivant.",
+            text: "À chaque Coup Critique, le voleur vole et absorbe 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ de la vitalité du plus puissant adversaire encore vivant.",
             tag: "passive",
             title: "Dextérité Malhonnête"
         }
@@ -395,7 +395,7 @@ export const FURTIVES: Entity[] = [
         {
             title: "Les poisons (Ratios Final)",
             isCollapsible: true,
-            text: "- Poison mortel : À chaque Coup Réussi, l'adversaire touché perd l'équivalent de 10% ^^ +{{ 10 * ((effect_booster || 0)/100 + (poison_boost || 0)/100) }}% ^^ de son Or (max 1000) en Vitalité.\n- Poison paralysant : Perte de 5% ^^ +{{ 5 * ((effect_booster || 0)/100 + (poison_boost || 0)/100) }}% ^^ de son Or (max 500) en Vitesse.\n- Poison douloureux : Perte de 5% ^^ +{{ 5 * ((effect_booster || 0)/100 + (poison_boost || 0)/100) }}% ^^ de son Or (max 500) en Dégâts.",
+            text: "- Poison mortel : À chaque Coup Réussi, l'adversaire touché perd l'équivalent de 10% ^^ +{{(10 * ((effect_booster || 0)/100 + (poison_boost || 0)/100))}}% ^^ de son Or (max 1000) en Vitalité.\n- Poison paralysant : Perte de 5% ^^ +{{(5 * ((effect_booster || 0)/100 + (poison_boost || 0)/100))}}% ^^ de son Or (max 500) en Vitesse.\n- Poison douloureux : Perte de 5% ^^ +{{(5 * ((effect_booster || 0)/100 + (poison_boost || 0)/100))}}% ^^ de son Or (max 500) en Dégâts.",
             tag: "special"
         }
     ],

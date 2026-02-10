@@ -1,6 +1,6 @@
 
 // ... existing imports
-import { StatDefinition, Entity, Modifier, ModifierType, StatResult, CalculationResult, EntityType, PlayerSelection, ActiveSummon, SummonDefinition, StatDetail } from '../types';
+import { StatDefinition, Entity, Modifier, ModifierType, StatResult, CalculationResult, EntityType, PlayerSelection, ActiveSummon, SummonDefinition, StatDetail, BreakdownComponent, SummonStatBreakdown } from '../types';
 
 export interface EvaluationContext {
   // ... existing interface
@@ -16,10 +16,13 @@ export interface EvaluationContext {
   soul_count?: number; // Added soul_count
   pass_index?: number; // NEW: 0, 1, 2...
   is_final_pass?: boolean; // NEW: true if last pass
+  isToggled?: (id: string) => boolean; // NEW: Helper
   [key: string]: any; 
 }
 
-// ... formulaCache and evaluateFormula unchanged ...
+// ... formulaCache, evaluateFormula, checkCondition, flattenItemConfigs, executePass, generateVirtualEntities ...
+// (Conservez tout le code existant jusqu'à la fonction calculateStats)
+
 const formulaCache = new Map<string, Function>();
 const MAX_CACHE_SIZE = 2000;
 
@@ -74,7 +77,6 @@ export const evaluateFormula = (formula: string, context: EvaluationContext): nu
   }
 };
 
-// ... checkCondition unchanged ...
 export const checkCondition = (condition: string | undefined, context: EvaluationContext): boolean => {
   if (!condition || condition.trim() === '') return true;
   try {
@@ -100,7 +102,6 @@ export const checkCondition = (condition: string | undefined, context: Evaluatio
   }
 };
 
-// Helper to flatten itemConfigs into the context
 const flattenItemConfigs = (configs: Record<string, any> | undefined): Record<string, number> => {
     const flattened: Record<string, number> = {};
     if (!configs) return flattened;
@@ -139,6 +140,8 @@ const executePass = (
             trace: [`[${def.label}] Definition: ${def.baseValue}`]
         };
         currentStatValues[def.key] = def.baseValue;
+        // Inject Base defaults for first pass
+        currentStatValues[`${def.key}_base`] = def.baseValue;
     });
 
     // ... existing logic to combine items ...
@@ -185,6 +188,7 @@ const executePass = (
         const dynamicStats: Record<string, number> = {};
         Object.keys(results).forEach(k => {
             dynamicStats[k] = results[k].finalValue;
+            dynamicStats[`${k}_base`] = results[k].base; // Inject Base stats into helper context
         });
 
         const sliderValues = contextParams.sliderValues || {};
@@ -199,6 +203,7 @@ const executePass = (
             ...sliderValues,     
             ...itemConfigValues, // Inject config vars
             toggles: contextParams.toggles || {}, // ADDED: Toggles for helpers
+            isToggled: (id: string) => !!(contextParams.toggles && contextParams.toggles[id]),
             ...contextParams 
         };
     };
@@ -292,7 +297,6 @@ const executePass = (
     };
 
     const sliderValues = contextParams.sliderValues || {};
-    // NEW: Flatten configs for main eval context
     const itemConfigValues = flattenItemConfigs(contextParams.itemConfigs);
 
     const evalContext: EvaluationContext = {
@@ -311,17 +315,16 @@ const executePass = (
         is_final_pass: false,
         ...utils,
         ...sliderValues, 
-        ...itemConfigValues, // INJECT CONFIGS HERE
-        toggles: contextParams.toggles || {}, // CRITICAL FIX: Inject toggles object for formula access
+        ...itemConfigValues,
+        toggles: contextParams.toggles || {}, 
+        isToggled: (id: string) => !!(contextParams.toggles && contextParams.toggles[id]),
         utils: utils, 
         context: { ...contextParams, itemIds: allItemIds }
     };
 
-    // ... Priority logic and Main Loop ...
-    // MODIFIED: GLOBAL_RULE set to 0 to run first (Sync PP, etc.)
     const getPriority = (type: string) => {
         switch(type) {
-            case 'GLOBAL_RULE': return 0; // Highest priority for rule syncing
+            case 'GLOBAL_RULE': return 0;
             case 'RACE': return 0;
             case 'CLASS': return 1;
             case 'SPECIALIZATION': return 2;
@@ -338,13 +341,15 @@ const executePass = (
     const PASSES = 3;
 
     for (let pass = 0; pass < PASSES; pass++) {
-        Object.keys(results).forEach(key => { evalContext[key] = results[key].finalValue; });
+        Object.keys(results).forEach(key => { 
+            evalContext[key] = results[key].finalValue;
+            evalContext[`${key}_base`] = results[key].base; // INJECT BASE FOR FORMULAS
+        });
         evalContext.pass_index = pass;
         evalContext.is_final_pass = (pass === PASSES - 1);
 
         const activeModifiers: { mod: Modifier; source: string; priority: number; entityType: string }[] = [];
 
-        // 2a. Process Singleton Entities
         safeEntities.forEach(ent => {
             if (ent.type === EntityType.ITEM || ent.type === EntityType.BUFF) return;
             (ent.modifiers || []).forEach(mod => {
@@ -356,7 +361,6 @@ const executePass = (
             });
         });
 
-        // 2b. Process Item Instances
         allItemIds.forEach((itemId, idx) => {
              const ent = safeEntities.find(e => e.id === itemId);
              if (!ent) return;
@@ -374,7 +378,6 @@ const executePass = (
         
         activeModifiers.sort((a, b) => a.priority - b.priority);
 
-        // ... calculation loop (unchanged) ...
         (statDefs || []).forEach(stat => {
             const res = results[stat.key];
             if (!res) return;
@@ -416,11 +419,15 @@ const executePass = (
                     perTurnSum += val;
                     passTrace.push(`GAIN/TOUR [${m.source}]: +${val}/tr`);
                 } else {
-                    const isInherent = [EntityType.RACE, EntityType.GLOBAL_RULE, EntityType.RACIAL_COMPETENCE].includes(m.entityType as EntityType);
+                    const isInherent = [EntityType.RACE, EntityType.CLASS, EntityType.GLOBAL_RULE, EntityType.RACIAL_COMPETENCE].includes(m.entityType as EntityType);
+                    
                     if (isInherent) {
                         inherentBase += val;
                         passTrace.push(`BASE [${m.source}]: +${val}`);
-                        currentPassDetailsBase.push({ source: m.source, value: val });
+                        // CLEANUP: Only add to detailedBase if value is not 0
+                        if (Math.abs(val) > 0) {
+                            currentPassDetailsBase.push({ source: m.source, value: val });
+                        }
                     } else {
                         if (stat.key === 'partition_cap') {
                             if (val > flatSum) {
@@ -434,7 +441,10 @@ const executePass = (
                         } else {
                             flatSum += val;
                             passTrace.push(`BONUS [${m.source}]: +${val}`);
-                            currentPassDetailsFlat.push({ source: m.source, value: val });
+                            // CLEANUP: Only add to detailedFlat if value is not 0
+                            if (Math.abs(val) > 0) {
+                                currentPassDetailsFlat.push({ source: m.source, value: val });
+                            }
                         }
                     }
                 }
@@ -464,9 +474,16 @@ const executePass = (
             mods.filter(m => m.mod.type === ModifierType.ALT_FLAT).forEach(m => {
                 const val = evaluateFormula(m.mod.value, evalContext);
                 modifierResults[m.mod.id] = val;
-                altFlatSum += val;
-                passTrace.push(`ALT FIXE [${m.source}]: +${val}`);
+                
+                if (m.mod.isPerTurn) {
+                    perTurnSum += val;
+                    passTrace.push(`GAIN ALT/TOUR [${m.source}]: +${val}/tr`);
+                } else {
+                    altFlatSum += val;
+                    passTrace.push(`ALT FIXE [${m.source}]: +${val}`);
+                }
             });
+            
             mods.filter(m => m.mod.type === ModifierType.ALT_PERCENT).forEach(m => {
                 const val = evaluateFormula(m.mod.value, evalContext);
                 modifierResults[m.mod.id] = val;
@@ -511,6 +528,118 @@ const executePass = (
     return { results, modifierResults, evalContext };
 }
 
+const generateVirtualEntities = (entities: Entity[], safeContext: any, preCalcContext: any): { entities: Entity[], virtualIds: string[] } => {
+    const generatedEntities: Entity[] = [];
+    const virtualIds: string[] = [];
+
+    if (safeContext.weaponSlots) {
+        safeContext.weaponSlots.forEach((itemId: string, idx: number) => {
+            if (!itemId) return;
+            const upgradeLevelDmg = Number(safeContext.weaponUpgrades?.[idx] || 0);
+            const upgradeLevelVit = Number(safeContext.weaponUpgradesVit?.[idx] || 0);
+
+            if (upgradeLevelDmg > 0 || upgradeLevelVit > 0) {
+                const baseItem = entities.find(e => e.id === itemId);
+                if (baseItem) {
+                    const uniqueId = `${baseItem.id}_upgraded_slot_${idx}`;
+                    const upgradedEntity: Entity = {
+                        ...baseItem,
+                        id: uniqueId,
+                        name: `${baseItem.name} ${upgradeLevelDmg > 0 ? `(+${upgradeLevelDmg} DMG)` : ''} ${upgradeLevelVit > 0 ? `(+${upgradeLevelVit} VIT)` : ''}`,
+                        modifiers: [...baseItem.modifiers]
+                    };
+
+                    const upsertMod = (targetStat: string, bonus: number) => {
+                        let modFound = false;
+                        upgradedEntity.modifiers = upgradedEntity.modifiers.map(m => {
+                            if (!modFound && m.targetStatKey === targetStat && m.type === ModifierType.FLAT) {
+                                modFound = true;
+                                const multPattern = /^(\d+)\s*\*\s*([a-zA-Z_0-9]+)$/;
+                                const match = m.value.match(multPattern);
+                                let newValue = `(${m.value} + ${bonus})`;
+                                if (match) {
+                                    newValue = `(${match[1]} + ${bonus}) * ${match[2]}`;
+                                }
+                                return { ...m, value: newValue };
+                            }
+                            return m;
+                        });
+                        
+                        if (!modFound) {
+                            upgradedEntity.modifiers.push({ 
+                                id: `auto_upgrade_${targetStat}_${idx}`, 
+                                type: ModifierType.FLAT, 
+                                targetStatKey: targetStat, 
+                                value: bonus.toString() 
+                            });
+                        }
+                    };
+
+                    if (upgradeLevelDmg > 0) {
+                        let targetStat = 'dmg';
+                        let bonus = 50 * upgradeLevelDmg;
+                        if (baseItem.subCategory === 'Anneaux') { targetStat = 'vit'; bonus = 50 * upgradeLevelDmg; }
+                        else if (baseItem.subCategory === 'Gantelets') { targetStat = 'absorption'; bonus = 2 * upgradeLevelDmg; }
+                        upsertMod(targetStat, bonus);
+                    }
+
+                    if (upgradeLevelVit > 0) {
+                        upsertMod('vit', 50 * upgradeLevelVit);
+                    }
+
+                    generatedEntities.push(upgradedEntity);
+                    safeContext.weaponSlots[idx] = uniqueId;
+                }
+            }
+        });
+    }
+
+    if (safeContext.specializationId === 'spec_force_naturelle' && safeContext.naturalStrengthAllocation) {
+        safeContext.naturalStrengthAllocation.forEach((slotId: string) => {
+            let itemId: string | undefined;
+            if (slotId.startsWith('weapon_')) {
+                const idx = parseInt(slotId.split('_')[1]);
+                itemId = safeContext.weaponSlots[idx];
+            } else {
+                itemId = safeContext.equippedItems[slotId];
+            }
+
+            if (itemId) {
+                const item = generatedEntities.find(e => e.id === itemId) || entities.find(e => e.id === itemId);
+                
+                if (item) {
+                    let spdSum = 0;
+                    (item.modifiers || []).forEach(m => {
+                        if (m.targetStatKey === 'spd' && m.type === ModifierType.FLAT) {
+                            spdSum += evaluateFormula(m.value, preCalcContext as any);
+                        }
+                    });
+
+                    if (spdSum < 0) {
+                        const refundVal = Math.abs(spdSum);
+                        const virtualId = `fn_refund_${slotId}`;
+                        generatedEntities.push({
+                            id: virtualId,
+                            type: EntityType.BUFF,
+                            name: `Force Naturelle (${item.name})`,
+                            modifiers: [{
+                                id: `mod_fn_${slotId}`,
+                                type: ModifierType.FLAT,
+                                targetStatKey: 'spd',
+                                value: refundVal.toString(),
+                                name: 'Compensation Poids'
+                            }]
+                        });
+                        virtualIds.push(virtualId);
+                    }
+                }
+            }
+        });
+    }
+
+    return { entities: generatedEntities, virtualIds };
+};
+
 export const calculateStats = (
   statDefs: StatDefinition[],
   entities: Entity[],
@@ -530,165 +659,35 @@ export const calculateStats = (
       toggles: contextParams?.toggles || {},
       sliderValues: contextParams?.sliderValues || {},
       soulCount: contextParams?.soulCount || 0,
-      itemConfigs: contextParams?.itemConfigs || {} // Pass configs
+      itemConfigs: contextParams?.itemConfigs || {}
   };
   
-  const activeEntities = [...entities];
+  let activeEntities = [...entities];
   
-  // Pass 0 (Discovery)
   const discoveryPass = executePass(statDefs, activeEntities, safeContext, []);
   
-  // Update Pre-Calc Context with results
   const preCalcContext: any = { 
       level: safeContext.level ?? 0,
       soul_count: safeContext.soulCount || 0,
       ...(safeContext.sliderValues || {}),
-      ...flattenItemConfigs(safeContext.itemConfigs), // Flatten configs here too
+      ...flattenItemConfigs(safeContext.itemConfigs), 
       ...safeContext,
-      ...Object.fromEntries(Object.entries(discoveryPass.results).map(([k, v]) => [k, v.finalValue]))
+      ...Object.fromEntries(Object.entries(discoveryPass.results).map(([k, v]) => [k, v.finalValue])),
+      ...Object.fromEntries(Object.entries(discoveryPass.results).map(([k, v]) => [`${k}_base`, v.base])) // INJECT BASE STATS FOR PRECALC
   };
 
-  // ... Virtual Items Generation (Force Naturelle, Upgrades) ...
-  const virtualItemIds: string[] = [];
+  const { entities: newEntities, virtualIds } = generateVirtualEntities(entities, safeContext, preCalcContext);
+  activeEntities = [...activeEntities, ...newEntities];
   
-  // MODIFIED: Handle BOTH Damage and Vitality upgrades on weapons
-  if (safeContext.weaponSlots) {
-      safeContext.weaponSlots.forEach((itemId, idx) => {
-          if (!itemId) return;
-          const upgradeLevelDmg = Number(safeContext.weaponUpgrades?.[idx] || 0);
-          const upgradeLevelVit = Number(safeContext.weaponUpgradesVit?.[idx] || 0); // NEW
-
-          // Process upgrades if either exists
-          if (upgradeLevelDmg > 0 || upgradeLevelVit > 0) {
-              const baseItem = entities.find(e => e.id === itemId);
-              if (baseItem) {
-                  let uniqueId = `${baseItem.id}_upgraded_slot_${idx}`;
-                  const upgradedEntity: Entity = {
-                      ...baseItem,
-                      id: uniqueId,
-                      name: `${baseItem.name} ${upgradeLevelDmg > 0 ? `(+${upgradeLevelDmg} DMG)` : ''} ${upgradeLevelVit > 0 ? `(+${upgradeLevelVit} VIT)` : ''}`,
-                      modifiers: [...baseItem.modifiers] // Clone mods
-                  };
-
-                  // 1. DAMAGE UPGRADE LOGIC
-                  if (upgradeLevelDmg > 0) {
-                      let targetStat = 'dmg';
-                      let bonus = 50 * upgradeLevelDmg;
-                      if (baseItem.subCategory === 'Anneaux') { targetStat = 'vit'; bonus = 50 * upgradeLevelDmg; }
-                      else if (baseItem.subCategory === 'Gantelets') { targetStat = 'absorption'; bonus = 2 * upgradeLevelDmg; }
-
-                      let modFound = false;
-                      let applied = false; // Prevent multiple applications to same stat
-                      
-                      upgradedEntity.modifiers = upgradedEntity.modifiers.map(m => {
-                          if (!applied && m.targetStatKey === targetStat && m.type === ModifierType.FLAT) {
-                              applied = true;
-                              modFound = true;
-                              const multPattern = /^(\d+)\s*\*\s*([a-zA-Z_0-9]+)$/;
-                              const match = m.value.match(multPattern);
-                              let newValue = `(${m.value} + ${bonus})`;
-                              if (match) {
-                                  const baseVal = match[1];
-                                  const variable = match[2];
-                                  newValue = `(${baseVal} + ${bonus}) * ${variable}`;
-                              }
-                              return { ...m, value: newValue };
-                          }
-                          return m;
-                      });
-
-                      if (!modFound) {
-                          upgradedEntity.modifiers.push({ id: `auto_upgrade_dmg_${idx}`, type: ModifierType.FLAT, targetStatKey: targetStat, value: bonus.toString() });
-                      }
-                  }
-
-                  // 2. VITALITY UPGRADE LOGIC (NEW)
-                  if (upgradeLevelVit > 0) {
-                      const bonusVit = 50 * upgradeLevelVit;
-                      let modFound = false;
-                      let applied = false; // Prevent multiple applications to same stat
-
-                      // Update existing Vit mod if present
-                      upgradedEntity.modifiers = upgradedEntity.modifiers.map(m => {
-                          if (!applied && m.targetStatKey === 'vit' && m.type === ModifierType.FLAT) {
-                              applied = true;
-                              modFound = true;
-                              const multPattern = /^(\d+)\s*\*\s*([a-zA-Z_0-9]+)$/;
-                              const match = m.value.match(multPattern);
-                              let newValue = `(${m.value} + ${bonusVit})`;
-                              if (match) {
-                                  const baseVal = match[1];
-                                  const variable = match[2];
-                                  newValue = `(${baseVal} + ${bonusVit}) * ${variable}`;
-                              }
-                              return { ...m, value: newValue };
-                          }
-                          return m;
-                      });
-
-                      if (!modFound) {
-                          upgradedEntity.modifiers.push({ id: `auto_upgrade_vit_${idx}`, type: ModifierType.FLAT, targetStatKey: 'vit', value: bonusVit.toString() });
-                      }
-                  }
-
-                  activeEntities.push(upgradedEntity);
-                  safeContext.weaponSlots[idx] = uniqueId;
-              }
-          }
-      });
-  }
-
-  if (safeContext.specializationId === 'spec_force_naturelle' && safeContext.naturalStrengthAllocation) {
-      safeContext.naturalStrengthAllocation.forEach(slotId => {
-          let itemId: string | undefined;
-          if (slotId.startsWith('weapon_')) {
-              const idx = parseInt(slotId.split('_')[1]);
-              itemId = safeContext.weaponSlots[idx];
-          } else {
-              itemId = safeContext.equippedItems[slotId];
-          }
-
-          if (itemId) {
-              const item = activeEntities.find(e => e.id === itemId);
-              if (item) {
-                  let spdSum = 0;
-                  (item.modifiers || []).forEach(m => {
-                      if (m.targetStatKey === 'spd' && m.type === ModifierType.FLAT) {
-                          spdSum += evaluateFormula(m.value, preCalcContext as any);
-                      }
-                  });
-
-                  if (spdSum < 0) {
-                      const refundVal = Math.abs(spdSum);
-                      const virtualId = `fn_refund_${slotId}`;
-                      activeEntities.push({
-                          id: virtualId,
-                          type: EntityType.BUFF,
-                          name: `Force Naturelle (${item.name})`,
-                          modifiers: [{
-                              id: `mod_fn_${slotId}`,
-                              type: ModifierType.FLAT,
-                              targetStatKey: 'spd',
-                              value: refundVal.toString(),
-                              name: 'Compensation Poids'
-                          }]
-                      });
-                      virtualItemIds.push(virtualId);
-                  }
-              }
-          }
-      });
-  }
-
-  const passA = executePass(statDefs, activeEntities, safeContext, virtualItemIds); 
+  const passA = executePass(statDefs, activeEntities, safeContext, virtualIds); 
+  
   const cap = passA.results['partition_cap']?.finalValue || 0;
-  
   let finalResults = passA;
   
   if (cap > 0 && safeContext.partitionSlots && safeContext.partitionSlots.length > 0) {
       const validPartitionIds = safeContext.partitionSlots.slice(0, cap);
       if (validPartitionIds.length > 0) {
-          const combinedExtraIds = [...virtualItemIds, ...validPartitionIds];
+          const combinedExtraIds = [...virtualIds, ...validPartitionIds];
           finalResults = executePass(statDefs, activeEntities, safeContext, combinedExtraIds);
       }
   }
@@ -702,17 +701,57 @@ export const calculateStats = (
 
   const activeSummons: ActiveSummon[] = [];
   const finalContext = finalResults.evalContext;
-  
-  // NEW: Retrieve Flat Bonus for Summons
   const summonFlatBonus = finalResults.results['summon_flat_bonus']?.finalValue || 0;
+  // NEW: Global Summon Multiplier Support
+  const summonMultBonus = finalResults.results['summon_mult_bonus']?.finalValue || 0;
+  const summonMultFactor = 1 + (summonMultBonus / 100);
+
+  const allFinalStats = Object.fromEntries(
+      Object.entries(finalResults.results).map(([k, v]) => [k, v.finalValue])
+  );
 
   const summonContext: EvaluationContext = {
       ...finalContext,
+      ...allFinalStats, 
       vit: getPreFinalStat('vit'),
+      vit_base: finalResults.results['vit']?.base || 0,
       spd: getPreFinalStat('spd'),
       dmg: getPreFinalStat('dmg'),
-      aura: getPreFinalStat('aura'), // REPLACED ARMOR WITH AURA
+      aura: getPreFinalStat('aura'), 
       res: getPreFinalStat('res'),
+  };
+
+  const generateBreakdown = (base: number, flat: number, context: any, stat: string): SummonStatBreakdown => {
+      const components: BreakdownComponent[] = [];
+      const booster = context.effect_booster || 0;
+      const globalMult = context.summon_mult_bonus || 0;
+      const croupier = context.croupier_mult || 1;
+      const ratioDeck = context[`ratio_deck_${stat}`] || 0;
+      const weaponEff = context.weapon_effect_mult || 1;
+
+      // 1. Base
+      if (base > 0) components.push({ label: `Base Joueur`, value: base });
+      
+      // 2. Flat Bonus
+      if (flat > 0) components.push({ label: `Bonus Fixe Invoc`, value: `+${flat}` });
+
+      // 3. Multipliers (Specific to Mastodonte logic mostly, but good generic display)
+      if (croupier > 1) components.push({ label: `Multiplicateur Croupier`, value: `x${croupier}` });
+      
+      if (ratioDeck > 0) {
+          const pct = Math.round(ratioDeck * 100);
+          components.push({ label: `Ratio Deck (${stat.toUpperCase()})`, value: `+${pct}%` });
+      }
+
+      if (globalMult > 0) components.push({ label: `Boost Global Invoc`, value: `+${globalMult}%` });
+      
+      // Effect Booster is tricky because it's usually inside formulas, but we can show it if relevant
+      if (booster > 0) components.push({ label: `Boost Effets Global`, value: `+${booster}%` });
+
+      return {
+          total: 0, // Calculated later
+          components
+      };
   };
 
   const equippedItemIds = new Set(finalContext.itemIds);
@@ -725,15 +764,24 @@ export const calculateStats = (
                
                const count = evaluateFormula(s.countValue, summonContext);
                if (count > 0) {
+                   const baseVit = Math.ceil(evaluateFormula(s.stats.vit, summonContext));
+                   const baseSpd = Math.ceil(evaluateFormula(s.stats.spd, summonContext));
+                   const baseDmg = Math.ceil(evaluateFormula(s.stats.dmg, summonContext));
+
                    activeSummons.push({
                        id: s.id, 
                        sourceName: ent.name,
                        name: s.name,
                        count: Math.floor(count),
                        stats: {
-                           vit: Math.ceil(evaluateFormula(s.stats.vit, summonContext)) + summonFlatBonus,
-                           spd: Math.ceil(evaluateFormula(s.stats.spd, summonContext)) + summonFlatBonus,
-                           dmg: Math.ceil(evaluateFormula(s.stats.dmg, summonContext)) + summonFlatBonus
+                           vit: baseVit + summonFlatBonus,
+                           spd: baseSpd + summonFlatBonus,
+                           dmg: baseDmg + summonFlatBonus
+                       },
+                       breakdown: {
+                           vit: { total: baseVit + summonFlatBonus, components: generateBreakdown(0, summonFlatBonus, summonContext, 'vit').components },
+                           spd: { total: baseSpd + summonFlatBonus, components: generateBreakdown(0, summonFlatBonus, summonContext, 'spd').components },
+                           dmg: { total: baseDmg + summonFlatBonus, components: generateBreakdown(0, summonFlatBonus, summonContext, 'dmg').components }
                        }
                    });
                }
@@ -741,11 +789,16 @@ export const calculateStats = (
        }
   });
 
+  // ANIMISTE / NECRO LOGIC (UNCHANGED, JUST WRAPPED IN NEW BREAKDOWN FORMAT)
   const invCount = finalResults.results['invocation_count']?.finalValue || 0;
   if (invCount > 0) {
       const rawShare = finalResults.results['invocation_share']?.finalValue || 0;
       const invShare = rawShare / 100;
       const splitFactor = invShare / invCount; 
+
+      const baseVit = Math.ceil(getPreFinalStat('vit') * splitFactor * summonMultFactor);
+      const baseSpd = Math.ceil(getPreFinalStat('spd') * splitFactor * summonMultFactor);
+      const baseDmg = Math.ceil(getPreFinalStat('dmg') * splitFactor * summonMultFactor);
 
       activeSummons.push({
           sourceName: "Animiste",
@@ -753,9 +806,14 @@ export const calculateStats = (
           count: invCount,
           sharePercent: rawShare,
           stats: {
-              vit: Math.ceil(getPreFinalStat('vit') * splitFactor) + summonFlatBonus,
-              spd: Math.ceil(getPreFinalStat('spd') * splitFactor) + summonFlatBonus,
-              dmg: Math.ceil(getPreFinalStat('dmg') * splitFactor) + summonFlatBonus,
+              vit: baseVit + summonFlatBonus,
+              spd: baseSpd + summonFlatBonus,
+              dmg: baseDmg + summonFlatBonus,
+          },
+          breakdown: {
+              vit: { total: baseVit + summonFlatBonus, components: [{ label: `Partage (${rawShare}%)`, value: baseVit }, { label: "Bonus Fixe", value: summonFlatBonus }] },
+              spd: { total: baseSpd + summonFlatBonus, components: [{ label: `Partage (${rawShare}%)`, value: baseSpd }, { label: "Bonus Fixe", value: summonFlatBonus }] },
+              dmg: { total: baseDmg + summonFlatBonus, components: [{ label: `Partage (${rawShare}%)`, value: baseDmg }, { label: "Bonus Fixe", value: summonFlatBonus }] }
           }
       });
   }
@@ -764,15 +822,25 @@ export const calculateStats = (
   if (necroCount > 0) {
       const rawNecroShare = finalResults.results['necro_pet_share']?.finalValue || 0;
       const necroShare = rawNecroShare / 100;
+      
+      const baseVit = Math.ceil(getPreFinalStat('vit') * necroShare * summonMultFactor);
+      const baseSpd = Math.ceil(getPreFinalStat('spd') * necroShare * summonMultFactor);
+      const baseDmg = Math.ceil(getPreFinalStat('dmg') * necroShare * summonMultFactor);
+
       activeSummons.push({
           sourceName: "Nécromant",
           name: "Serviteur Macabre",
           count: necroCount,
           sharePercent: rawNecroShare,
           stats: {
-              vit: Math.ceil(getPreFinalStat('vit') * necroShare) + summonFlatBonus,
-              spd: Math.ceil(getPreFinalStat('spd') * necroShare) + summonFlatBonus,
-              dmg: Math.ceil(getPreFinalStat('dmg') * necroShare) + summonFlatBonus,
+              vit: baseVit + summonFlatBonus,
+              spd: baseSpd + summonFlatBonus,
+              dmg: baseDmg + summonFlatBonus,
+          },
+          breakdown: {
+              vit: { total: baseVit + summonFlatBonus, components: [{ label: `Partage (${rawNecroShare}%)`, value: baseVit }, { label: "Bonus Fixe", value: summonFlatBonus }] },
+              spd: { total: baseSpd + summonFlatBonus, components: [{ label: `Partage (${rawNecroShare}%)`, value: baseSpd }, { label: "Bonus Fixe", value: summonFlatBonus }] },
+              dmg: { total: baseDmg + summonFlatBonus, components: [{ label: `Partage (${rawNecroShare}%)`, value: baseDmg }, { label: "Bonus Fixe", value: summonFlatBonus }] }
           }
       });
   }

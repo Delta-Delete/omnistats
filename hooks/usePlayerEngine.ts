@@ -76,7 +76,7 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
                 if (rankData && rankData.modifiers && rankData.modifiers.length > 0) {
                     const rankEntity: Entity = {
                         id: `virtual_rank_${rankId}`,
-                        type: EntityType.GLOBAL_RULE, 
+                        type: EntityType.GUILD, // CHANGED TO GUILD (Was GLOBAL_RULE implicitly or explicitly)
                         name: `Rang : ${rankData.name}`,
                         modifiers: rankData.modifiers
                     };
@@ -93,7 +93,7 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
                 if (rankData && rankData.modifiers && rankData.modifiers.length > 0) {
                     const rankEntity: Entity = {
                         id: `virtual_rank_sec_${rankId}`,
-                        type: EntityType.GLOBAL_RULE, 
+                        type: EntityType.GUILD, // CHANGED TO GUILD
                         name: `Réputation : ${rankData.name}`,
                         modifiers: rankData.modifiers
                     };
@@ -103,10 +103,10 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
                 // GEMME SPELUNCIENNE LOGIC (Restored)
                 if (id === 'guild_crocs_spelunca') {
                     const gemMap: Record<string, string> = {
-                        'croc_rep_sympathisant': 'item_gemme_spel_1',
-                        'croc_rep_allie': 'item_gemme_spel_2',
-                        'croc_rep_ami': 'item_gemme_spel_3',
-                        'croc_rep_fidele': 'item_gemme_spel_5'
+                        'croc_rep_sympathisant': 'item_gemme_spel_std',
+                        'croc_rep_allie': 'item_gemme_spel_std',
+                        'croc_rep_ami': 'item_gemme_spel_std',
+                        'croc_rep_fidele': 'item_gemme_spel_bound'
                     };
                     const gemId = gemMap[rankId];
                     if (gemId) {
@@ -134,7 +134,7 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
             if (manualModifiers.length > 0) {
                 addEntity({
                     id: 'guild_manual_bonus_virtual',
-                    type: EntityType.GLOBAL_RULE,
+                    type: EntityType.GUILD, // CHANGED TO GUILD
                     name: 'Bonus de Guilde (Manuel)',
                     modifiers: manualModifiers
                 });

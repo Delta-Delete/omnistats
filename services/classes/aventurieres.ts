@@ -28,7 +28,7 @@ export const AVENTURIERES: Entity[] = [
             title: "Rage Ascendante"
         },
         {
-            text: "À chaque fois que le Barbare fait un Échec Critique, sa Vitalité et sa Vitesse augmentent de 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ par cumul.",
+            text: "À chaque fois que le Barbare fait un Échec Critique, sa Vitalité et sa Vitesse augmentent de 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ par cumul.",
             tag: "conditionnel",
             title: "Colère vive"
         }
@@ -52,7 +52,7 @@ export const AVENTURIERES: Entity[] = [
   },
   {
       id: 'spec_anticipation_sauvage', type: EntityType.SPECIALIZATION, name: 'Anticipation sauvage', parentId: 'barbares',
-      description: "Instinct de survie. Si vous maniez une arme à deux mains, votre Vitalité est multipliée par 1.33 (+33% ^^ +{{33 * ((effect_booster || 0)/100)}}% ^^).",
+      description: "Instinct de survie. Si vous maniez une arme à deux mains, votre Vitalité est multipliée par 1.33 (+33% ^^ +{{(33 * ((effect_booster || 0)/100))}}% ^^).",
       modifiers: [
           {
               id: 'spec_as_vit',
@@ -76,7 +76,7 @@ export const AVENTURIERES: Entity[] = [
               title: "Berserk Réactif"
           },
           {
-              text: "À chaque attaque subie, les dégâts du Barbare augmentent de 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ par cumul.",
+              text: "À chaque attaque subie, les dégâts du Barbare augmentent de 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ par cumul.",
               tag: "conditionnel",
               title: "Montée de Rage"
           }
@@ -113,7 +113,7 @@ export const AVENTURIERES: Entity[] = [
             title: "Instinct de Survie"
         },
         {
-            text: "Si le Guerrier voit sa vitalité descendre en dessous de 50% et qu'il n'est pas mort, sa vitesse et ses dégâts augmentent de 33% ^^ +{{33 * ((effect_booster || 0)/100)}}% ^^ pour toute la durée du combat (non-cumulable).",
+            text: "Si le Guerrier voit sa vitalité descendre en dessous de 50% et qu'il n'est pas mort, sa vitesse et ses dégâts augmentent de 33% ^^ +{{(33 * ((effect_booster || 0)/100))}}% ^^ pour toute la durée du combat (non-cumulable).",
             tag: "conditionnel",
             title: "Colère noire"
         }
@@ -141,7 +141,7 @@ export const AVENTURIERES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Chevalier',
     parentId: 'guerriers',
-    description: "Si le Guerrier équipe au moins une arme de type Épée ou Lance, ses dégâts sont augmentés de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^.",
+    description: "Si le Guerrier équipe au moins une arme de type Épée ou Lance, ses dégâts sont augmentés de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^.",
     modifiers: [
         {
             id: 'spec_chev_dmg',
@@ -158,7 +158,7 @@ export const AVENTURIERES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Force brute',
     parentId: 'guerriers',
-    description: "Vos attaques sont lourdes et brutales. Augmente vos chances de critique de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^ (s'applique aux deux types de critique).",
+    description: "Vos attaques sont lourdes et brutales. Augmente vos chances de critique de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^ (s'applique aux deux types de critique).",
     modifiers: [
         { id: 's_fb_cp', type: ModifierType.FLAT, targetStatKey: 'crit_primary', value: '25 * (1 + (effect_booster || 0)/100)' },
         { id: 's_fb_cs', type: ModifierType.FLAT, targetStatKey: 'crit_secondary', value: '25 * (1 + (effect_booster || 0)/100)' }
@@ -189,11 +189,11 @@ export const AVENTURIERES: Entity[] = [
             title: "Ouverture Mortelle"
         },
         {
-            text: "La première attaque réussie gagne 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de dégâts pour chaque arme dans l'inventaire.",
+            text: "La première attaque réussie gagne 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de dégâts pour chaque arme dans l'inventaire.",
             tag: "conditionnel"
         },
         {
-            text: "Bonus supplémentaire de 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ si vous possédez une arme de Forge Personnelle.",
+            text: "Bonus supplémentaire de 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ si vous possédez une arme de Forge Personnelle.",
             tag: "conditionnel"
         }
     ],
@@ -231,7 +231,7 @@ export const AVENTURIERES: Entity[] = [
         {
             title: "Gain de vitalité (Basé sur Dégâts Arme)",
             isCollapsible: true,
-            text: "- Niveau 10 à 19 : +50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^ des dégâts.\n- Niveau 20 à 29 : +75% ^^ +{{75 * ((effect_booster || 0)/100)}}% ^^ des dégâts.\n- Niveau 30 et + : +100% ^^ +{{100 * ((effect_booster || 0)/100)}}% ^^ des dégâts.",
+            text: "- Niveau 10 à 19 : +50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^ des dégâts.\n- Niveau 20 à 29 : +75% ^^ +{{(75 * ((effect_booster || 0)/100))}}% ^^ des dégâts.\n- Niveau 30 et + : +100% ^^ +{{(100 * ((effect_booster || 0)/100))}}% ^^ des dégâts.",
             tag: "info"
         }
     ],
@@ -260,7 +260,7 @@ export const AVENTURIERES: Entity[] = [
     type: EntityType.SPECIALIZATION, 
     name: 'Croisé', 
     parentId: 'paladins',
-    description: "Expert du combat lourd. +25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^ Vitalité (Final) si équipé d'un Bouclier ou d'un Fléau d'armes.",
+    description: "Expert du combat lourd. +25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^ Vitalité (Final) si équipé d'un Bouclier ou d'un Fléau d'armes.",
     modifiers: [
         {
             id: 'spec_cro_vit',
@@ -279,7 +279,7 @@ export const AVENTURIERES: Entity[] = [
     parentId: 'paladins',
     descriptionBlocks: [
         {
-            text: "Les premières attaques subies lors d'un tour quelconque sont réduites de 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^.",
+            text: "Les premières attaques subies lors d'un tour quelconque sont réduites de 50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^.",
             tag: "active",
             title: "Anticipation Divine"
         }
@@ -306,7 +306,7 @@ export const AVENTURIERES: Entity[] = [
             title: "Initiative Divine"
         },
         {
-            text: "Son attaque est augmentée de 20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^. En cas d'Échec Critique (EC), ce bonus est perdu.",
+            text: "Son attaque est augmentée de 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^. En cas d'Échec Critique (EC), ce bonus est perdu.",
             tag: "conditionnel",
             title: "Frappe Vigoureuse"
         }
@@ -384,7 +384,7 @@ export const AVENTURIERES: Entity[] = [
             title: "Résilience Rebelle"
         },
         {
-            text: "Si la vitalité du Protecteur est altérée en mal ou qu'il est paralysé, sa vitalité augmente de 30% ^^ +{{30 * ((effect_booster || 0)/100)}}% ^^ (Une seule fois par combat).",
+            text: "Si la vitalité du Protecteur est altérée en mal ou qu'il est paralysé, sa vitalité augmente de 30% ^^ +{{(30 * ((effect_booster || 0)/100))}}% ^^ (Une seule fois par combat).",
             tag: "conditionnel",
             title: "Sursaut de Contradiction"
         }
@@ -419,7 +419,7 @@ export const AVENTURIERES: Entity[] = [
             title: "Protecteur Héroïque"
         },
         {
-            text: "À chaque attaque subie, les dégâts du Protecteur augmentent de 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ par cumul.",
+            text: "À chaque attaque subie, les dégâts du Protecteur augmentent de 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ par cumul.",
             tag: "conditionnel",
             title: "Retour de flamme"
         },

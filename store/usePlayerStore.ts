@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PlayerSelection, Entity, ItemConfigValues } from '../types';
@@ -13,19 +12,17 @@ const DEFAULT_SELECTION: PlayerSelection = {
   weaponUpgradesVit: {}, // NEW: Vitality upgrades
   partitionSlots: [],
   bonusItems: [],
-  sealItems: ['seal_vitality_starter'],
+  sealItems: ['seal_vitality_starter'], // Mandatory Starter Item
   specialItems: [],
   itemConfigs: {}, // NEW: Configurable items storage
   toggles: {},
-  sliderValues: {
-      political_points_input: 0, // DEFAULT INITIALIZATION
-  },
+  sliderValues: {}, // CLEANED
   naturalStrengthAllocation: [],
   eliteCompetenceActive: false,
   racialCompetenceActive: false,
   guildRanks: {},
   guildSecondaryRanks: {},
-  guildManualBonuses: { vit: 0, spd: 0, dmg: 0, absorption: 0 },
+  guildManualBonuses: {}, // CLEANED: Removed explicit zeros
   guildIds: []
 };
 

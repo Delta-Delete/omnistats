@@ -7,15 +7,10 @@ import { Entity, Modifier, Rarity, ModifierType } from '../../types';
 
 // --- TEXT UTILS ---
 
-/**
- * Convertit une chaîne pour la police Perrigord (ou style Fantasy).
- * 1. Supprime les accents (NFD normalization).
- * 2. Convertit en Majuscules.
- */
 export const toFantasyTitle = (text: string): string => {
     return text
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Supprime les diacritiques (accents)
+        .replace(/[\u0300-\u036f]/g, "") 
         .toUpperCase();
 };
 
@@ -48,24 +43,47 @@ export const TAG_STYLES: Record<string, string> = {
 export const getTagLabel = (value: string) => TAG_OPTIONS.find(t => t.value === value)?.label || value;
 export const getTagColor = (value: string) => TAG_STYLES[value] || 'text-slate-300';
 
-// NEW: Helper for Rarity Colors
-export const getRarityColor = (rarity?: Rarity | string): string => {
-    switch(rarity) {
-        case 'exotic': return 'text-cyan-300'; // Aura Blue
-        case 'epic': return 'text-[#da9d00]'; // Gold
-        case 'legendary': return 'text-[#ff00c8]'; // Pink/Magenta
-        default: return 'text-slate-200'; // Normal/Default
+// --- RARITY STYLES (NEW SYSTEM) ---
+export const RARITY_STYLES: Record<string, { text: string, border: string, bg: string, glow: string }> = {
+    normal: { 
+        text: 'text-slate-300', 
+        border: 'border-slate-600', 
+        bg: 'bg-slate-900', 
+        glow: '' 
+    },
+    exotic: { 
+        text: 'text-cyan-300', 
+        border: 'border-cyan-500/70', 
+        bg: 'bg-cyan-950/20', 
+        glow: 'shadow-[0_0_15px_-5px_rgba(34,211,238,0.3)]' 
+    },
+    epic: { 
+        text: 'text-[#fbbf24]', // Amber-400
+        border: 'border-[#f59e0b]/70', 
+        bg: 'bg-amber-950/20', 
+        glow: 'shadow-[0_0_15px_-5px_rgba(251,191,36,0.3)]' 
+    },
+    legendary: { 
+        text: 'text-[#e879f9]', // Fuchsia-400
+        border: 'border-[#d946ef]/70', 
+        bg: 'bg-fuchsia-950/20', 
+        glow: 'shadow-[0_0_15px_-5px_rgba(232,121,249,0.4)]' 
     }
 };
 
-// NEW: Universal Helper to calculate visual bonus on an item
+export const getRarityStyle = (rarity?: Rarity | string) => {
+    return RARITY_STYLES[rarity || 'normal'] || RARITY_STYLES['normal'];
+};
+
+export const getRarityColor = (rarity?: Rarity | string): string => {
+    return getRarityStyle(rarity).text;
+};
+
+// --- CALCULATORS ---
+
 export const calculateEnhancedStats = (mod: Modifier, context: any, item: Entity, upgradeBonus: number = 0): { base: number, enhanced: number, bonus: number } => {
     
     // 1. Calculate Standard Value (Current Context)
-    // Note: Le contexte contient déjà les multiplicateurs globaux calculés par le moteur (ex: weapon_effect_mult, enchantment_mult)
-    
-    // FIX: On ne s'assure que le bonus d'upgrade s'applique UNIQUEMENT aux stats PLATES (FLAT).
-    // Sinon, un bonus de +50 DMG s'ajoute à "20 * weapon_effect_mult" (ALT_PERCENT) donnant "170%" au lieu de "20%".
     const safeUpgradeBonus = (mod.type === ModifierType.FLAT) ? upgradeBonus : 0;
 
     let standardValue = 0;
@@ -87,9 +105,6 @@ export const calculateEnhancedStats = (mod: Modifier, context: any, item: Entity
     }
 
     // 2. Calculate Raw Base Value (Stripped Context)
-    // On retire tous les boosts externes pour avoir la valeur "imprimée sur la carte"
-    // FIX: On conserve 'enchantment_mult' du contexte s'il existe, sinon 1. 
-    // Cela permet d'afficher la valeur doublée si le Chapeau est actif.
     const strippedContext = {
         ...context,
         weapon_effect_mult: 1,      
@@ -99,7 +114,6 @@ export const calculateEnhancedStats = (mod: Modifier, context: any, item: Entity
         seal_potency: 0, 
         effect_booster: 0,
         special_mastery: 0,
-        // enchantment_mult n'est pas écrasé à 1 ici pour refléter l'état réel du perso
         enchantment_mult: context.enchantment_mult || 1 
     };
 
@@ -113,6 +127,17 @@ export const calculateEnhancedStats = (mod: Modifier, context: any, item: Entity
         try {
             rawBaseValue = Math.ceil(evaluateFormula(mod.value, strippedContext));
         } catch (e) { rawBaseValue = 0; }
+        
+        // Defensive check: If rawBase is 0 but standard is not, and the formula starts with a number,
+        // it means evaluating with stripped context failed (e.g. division by 0 or complex logic).
+        // We try to extract the static base number.
+        if (rawBaseValue === 0 && standardValue !== 0) {
+            const staticMatch = mod.value.match(/^(\d+)/);
+            if (staticMatch) {
+                rawBaseValue = parseInt(staticMatch[1], 10);
+            }
+        }
+
         rawBaseValue += safeUpgradeBonus;
     }
 
@@ -266,21 +291,29 @@ export const AnimatedCounter = ({ value, className, precision = 0 }: { value: nu
 }
 
 export const parseRichText = (text: string) => {
+    if (!text) return null;
+    
+    // Split by markers for ^^...^^ and **...**
+    // The capture groups allow us to keep the delimiters in the array to process them
     const parts = text.split(/(\^\^.*?\^\^|\*\*.*?\*\*)/g);
     
     return parts.map((part, index) => {
+        // Matches ^^ +10% ^^
         if (part.startsWith('^^') && part.endsWith('^^')) {
-            const cleanVal = part.slice(2, -2); 
+            const cleanVal = part.slice(2, -2).trim(); 
+            // Check if value is numerically zero or close to it
             const num = parseFloat(cleanVal.replace(/[^0-9.-]/g, ''));
             if (!isNaN(num) && Math.abs(num) < 0.01) {
-                return null; 
+                return null; // Don't render +0%
             }
             return <span key={index} className="text-emerald-400 font-bold ml-1">{cleanVal}</span>;
         } 
+        // Matches ** Bold Text **
         else if (part.startsWith('**') && part.endsWith('**')) {
-            const cleanVal = part.slice(2, -2); 
+            const cleanVal = part.slice(2, -2).trim(); 
             return <span key={index} className="text-white font-bold">{cleanVal}</span>;
         }
+        // Regular Text
         return <span key={index}>{part}</span>;
     });
 };

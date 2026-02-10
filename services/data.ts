@@ -4,8 +4,8 @@ import { RACES } from './races';
 import { CLASSES_AND_SPECS } from './classes';
 import { ITEMS } from './items/index';
 import { OTHERS } from './others';
-import { ELITE_COMPETENCES } from './eliteCompetences/index';
-import { RACIAL_COMPETENCES } from './racialCompetences/index';
+import { ELITE_COMPETENCES } from './eliteCompetences'; // Import direct du fichier
+import { RACIAL_COMPETENCES } from './racialCompetences'; // Import direct du fichier
 import { CAREERS } from './careers';
 import { GUILDS } from './guilds';
 

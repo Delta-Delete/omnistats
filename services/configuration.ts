@@ -87,7 +87,7 @@ export const ITEM_CATEGORIES: ItemCategory[] = [
   { id: 'special', name: 'Objet Spécial', subCategories: ['Gadget', 'Quest', 'Consommable'] }, 
   { id: 'rebreather', name: 'Respirateur' },
   { id: 'mount', name: 'Monture', subCategories: ['Cheval', 'Mécanique', 'Créature'] },
-  { id: 'familiar', name: 'Familier', subCategories: ['Esprit', 'Magique'] },
+  { id: 'familiar', name: 'Familier', subCategories: ['Esprit', 'Magique', 'Chien', 'Loup'] }, // Ajout de Chien et Loup
   { id: 'companion', name: 'Compagnon', subCategories: ['Humanoïde', 'Bête'] },
   { id: 'vehicle', name: 'Véhicule', subCategories: ['Terrestre', 'Aérien'] },
   { id: 'backpack', name: 'Sac à dos', subCategories: ['Aventurier', 'Magique', 'Militaire'] }, 
@@ -163,12 +163,16 @@ export const INITIAL_STATS: StatDefinition[] = [
   { id: 'rd2', key: 'ratio_deck_crit', label: 'Ratio Deck (Crit)', baseValue: 1, group: 'Hidden', precision: 2 },
   { id: 'rd3', key: 'ratio_deck_spd', label: 'Ratio Deck (Spd)', baseValue: 1, group: 'Hidden', precision: 2 },
   { id: 'rd4', key: 'ratio_deck_vit', label: 'Ratio Deck (Vit)', baseValue: 1, group: 'Hidden', precision: 2 },
+  
+  // NEW: Multiplicateur Croupier (Required for formula safety)
+  { id: 'croupier_m', key: 'croupier_mult', label: 'Mult. Croupier', baseValue: 0, group: 'Hidden', precision: 2, description: 'Multiplicateur Spécialisation Croupier' },
 
   { id: 'mt1', key: 'turret_mult', label: 'Mult. Tourelles', baseValue: 1, group: 'Hidden', description: 'Multiplicateur global pour les effets de tourelles', precision: 2 },
 
   { id: 'inv_c', key: 'invocation_count', label: 'Nb Invocations', baseValue: 0, group: 'Hidden' },
   { id: 'inv_s', key: 'invocation_share', label: '% Partage Invoc', baseValue: 0, group: 'Hidden' },
   { id: 'sum_flat', key: 'summon_flat_bonus', label: 'Bonus Flat Invoc', baseValue: 0, group: 'Hidden', description: 'Bonus fixe ajouté à toutes les stats de chaque invocation' },
+  { id: 'sum_mult', key: 'summon_mult_bonus', label: 'Bonus Mult Invoc (%)', baseValue: 0, group: 'Hidden', description: 'Bonus multiplicateur (%) ajouté aux invocations' },
   
   { id: 'nec_c', key: 'necro_pet_count', label: 'Nb Invoc Nécromant', baseValue: 0, group: 'Hidden' },
   { id: 'nec_s', key: 'necro_pet_share', label: '% Partage Nécromant', baseValue: 0, group: 'Hidden' },

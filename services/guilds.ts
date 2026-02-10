@@ -165,10 +165,10 @@ export const GUILDS: Entity[] = [
             { id: 'croc_rep_criminel', name: 'Réputation : Criminel' },
             { id: 'croc_rep_suspect', name: 'Réputation : Suspect' },
             { id: 'croc_rep_neutre', name: 'Réputation : Neutre' },
-            { id: 'croc_rep_sympathisant', name: 'Réputation : Sympathisant' }, // Force Gemme +25%
-            { id: 'croc_rep_allie', name: 'Réputation : Allié' }, // Force Gemme +25%
-            { id: 'croc_rep_ami', name: 'Réputation : Ami' }, // Force Gemme +25%
-            { id: 'croc_rep_fidele', name: 'Réputation : Fidèle de la Lune de Sang' }, // Force Gemme +50%
+            { id: 'croc_rep_sympathisant', name: 'Réputation : Sympathisant' }, // Trigger Gemme Standard
+            { id: 'croc_rep_allie', name: 'Réputation : Allié' }, // Trigger Gemme Standard
+            { id: 'croc_rep_ami', name: 'Réputation : Ami' }, // Trigger Gemme Standard
+            { id: 'croc_rep_fidele', name: 'Réputation : Fidèle de la Lune de Sang' }, // Trigger Gemme Liée
         ]
     },
     // --- OPHIUCHUS ---

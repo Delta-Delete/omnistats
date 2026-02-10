@@ -1,16 +1,18 @@
 
-import React, { useState } from 'react';
-import { Save, X, Dog, Zap, Heart, Activity, Sword, MessageSquare } from 'lucide-react';
-import { Entity, EntityType, ModifierType } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Save, X, Dog, Zap, Heart, Activity, Sword, MessageSquare, Tag } from 'lucide-react';
+import { Entity, EntityType, ModifierType, ItemCategory } from '../../types';
 
 interface CompanionForgeModalProps {
+    categories: ItemCategory[];
     onClose: () => void;
     onSave: (item: Entity) => void;
 }
 
-export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ onClose, onSave }) => {
+export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ categories, onClose, onSave }) => {
     const [name, setName] = useState('');
     const [type, setType] = useState<'mount' | 'familiar'>('mount');
+    const [subCat, setSubCat] = useState(''); // New State for SubCategory
     const [description, setDescription] = useState('');
     
     // Stats
@@ -19,6 +21,21 @@ export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ onClos
         spd: 0,
         dmg: 0
     });
+
+    // Get available subcategories based on selected type
+    const availableSubCats = useMemo(() => {
+        const catDef = categories.find(c => c.id === type);
+        return catDef?.subCategories || [];
+    }, [type, categories]);
+
+    // Auto-select first subcategory when type changes
+    useEffect(() => {
+        if (availableSubCats.length > 0) {
+            setSubCat(availableSubCats[0]);
+        } else {
+            setSubCat(type === 'mount' ? 'Créature' : 'Esprit'); // Fallback
+        }
+    }, [type, availableSubCats]);
 
     const handleSave = () => {
         if (!name) return;
@@ -32,7 +49,7 @@ export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ onClos
             // Slot flexible (handled by picker filter), but generally fits custom_companion slot
             slotId: 'custom_companion',
             categoryId: type, // 'mount' or 'familiar'
-            subCategory: type === 'mount' ? 'Créature' : 'Esprit',
+            subCategory: subCat, // Uses user selection
             equipmentCost: 0,
             modifiers: [],
             isCraftable: true,
@@ -75,22 +92,39 @@ export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ onClos
                             />
                         </div>
                         
-                        <div>
-                            <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Type</label>
-                            <div className="flex bg-slate-800 rounded border border-slate-700 overflow-hidden">
-                                <button 
-                                    onClick={() => setType('mount')} 
-                                    className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'mount' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    <Dog size={14} className="mr-2" /> Monture
-                                </button>
-                                <div className="w-px bg-slate-700"></div>
-                                <button 
-                                    onClick={() => setType('familiar')} 
-                                    className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'familiar' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                                >
-                                    <Zap size={14} className="mr-2" /> Familier
-                                </button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Catégorie</label>
+                                <div className="flex bg-slate-800 rounded border border-slate-700 overflow-hidden">
+                                    <button 
+                                        onClick={() => setType('mount')} 
+                                        className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'mount' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        <Dog size={14} className="mr-2" /> Monture
+                                    </button>
+                                    <div className="w-px bg-slate-700"></div>
+                                    <button 
+                                        onClick={() => setType('familiar')} 
+                                        className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'familiar' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        <Zap size={14} className="mr-2" /> Familier
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Type (Espèce)</label>
+                                <div className="relative">
+                                    <select 
+                                        value={subCat}
+                                        onChange={(e) => setSubCat(e.target.value)}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white outline-none focus:border-indigo-500 appearance-none pl-8"
+                                    >
+                                        {availableSubCats.map(sc => (
+                                            <option key={sc} value={sc}>{sc}</option>
+                                        ))}
+                                    </select>
+                                    <Tag size={14} className="absolute left-2.5 top-2.5 text-slate-500 pointer-events-none" />
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -124,9 +124,9 @@ export const OTHERS: Entity[] = [
               // Condition based on set count
               condition: "countSet('set_co_standard') >= 3 && factionId === 'fac_congregation_ombre'",
               stats: {
-                  vit: 'level * 100',
-                  spd: '250',
-                  dmg: '250'
+                  vit: '(level * 100) * (1 + (summon_mult_bonus || 0)/100)',
+                  spd: '250 * (1 + (summon_mult_bonus || 0)/100)',
+                  dmg: '250 * (1 + (summon_mult_bonus || 0)/100)'
               }
           }
       ]

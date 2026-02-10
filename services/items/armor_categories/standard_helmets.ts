@@ -14,7 +14,7 @@ export const STANDARD_HELMETS: Entity[] = [
     description: "Les invocations gagnent +50 à toutes les stats (Vit/Spd/Dmg). Fait partie du set 'Essence invocatoire'.",
     modifiers: [
       { id: 'h_ess_vit', type: ModifierType.FLAT, targetStatKey: 'vit', value: '330' },
-      { id: 'h_ess_sum_flat', type: ModifierType.FLAT, targetStatKey: 'summon_flat_bonus', value: '50', name: 'Bonus Invoc (+50)', displayTag: 'used' }
+      { id: 'h_ess_sum_flat', type: ModifierType.FLAT, targetStatKey: 'summon_flat_bonus', value: '50' }
     ]
   },
   {

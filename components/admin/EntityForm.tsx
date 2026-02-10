@@ -140,6 +140,10 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                         <input type="number" value={entity.equipmentCost || 0} onChange={e => updateField('equipmentCost', parseInt(e.target.value))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"/>
                     </div>
                     <div>
+                        <label className="block text-[10px] uppercase font-bold text-amber-500 mb-1">Prix (Or)</label>
+                        <input type="number" value={entity.goldCost || 0} onChange={e => updateField('goldCost', parseInt(e.target.value))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300"/>
+                    </div>
+                    <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Faction ID</label>
                         <input value={entity.factionId || ''} onChange={e => updateField('factionId', e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white" placeholder="fac_..."/>
                     </div>
@@ -163,10 +167,14 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                         </select>
                     </div>
 
-                    <div className="flex items-end">
+                    <div className="flex flex-col gap-2">
                         <label className="flex items-center space-x-2 cursor-pointer">
                             <input type="checkbox" checked={entity.isCraftable || false} onChange={e => updateField('isCraftable', e.target.checked)} className="accent-emerald-500"/>
                             <span className="text-xs text-emerald-400 font-bold">Craftable ?</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" checked={entity.isTungsten || false} onChange={e => updateField('isTungsten', e.target.checked)} className="accent-slate-500"/>
+                            <span className="text-xs text-slate-400 font-bold">Tungstène ?</span>
                         </label>
                     </div>
                 </div>

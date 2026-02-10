@@ -14,8 +14,20 @@ export const FACTION_ITEMS: Entity[] = [
     setId: 'set_co_standard', // LINKED TO SET
     description: "Une capuche sombre dissimulant le visage. Fait partie du set 'Équipements standards de la C.O'.",
     modifiers: [
-      { id: 'co_h_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '115' },
-      { id: 'co_h_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '15' }
+      { 
+          id: 'co_h_v', 
+          type: ModifierType.FLAT, 
+          targetStatKey: 'vit', 
+          value: '115',
+          condition: "factionId === 'fac_congregation_ombre'"
+      },
+      { 
+          id: 'co_h_s', 
+          type: ModifierType.FLAT, 
+          targetStatKey: 'spd', 
+          value: '15',
+          condition: "factionId === 'fac_congregation_ombre'"
+      }
     ]
   },
   {
@@ -29,8 +41,20 @@ export const FACTION_ITEMS: Entity[] = [
     setId: 'set_co_standard', // LINKED TO SET
     description: "Tissu absorbant la lumière. Fait partie du set 'Équipements standards de la C.O'.",
     modifiers: [
-      { id: 'co_c_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: '140' },
-      { id: 'co_c_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '60' }
+      { 
+          id: 'co_c_v', 
+          type: ModifierType.FLAT, 
+          targetStatKey: 'vit', 
+          value: '140',
+          condition: "factionId === 'fac_congregation_ombre'"
+      },
+      { 
+          id: 'co_c_s', 
+          type: ModifierType.FLAT, 
+          targetStatKey: 'spd', 
+          value: '60',
+          condition: "factionId === 'fac_congregation_ombre'"
+      }
     ]
   },
   {
@@ -44,7 +68,13 @@ export const FACTION_ITEMS: Entity[] = [
     setId: 'set_co_standard', // LINKED TO SET
     description: "Semelles silencieuses. Fait partie du set 'Équipements standards de la C.O'.",
     modifiers: [
-      { id: 'co_b_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: '95' }
+      { 
+          id: 'co_b_s', 
+          type: ModifierType.FLAT, 
+          targetStatKey: 'spd', 
+          value: '95',
+          condition: "factionId === 'fac_congregation_ombre'"
+      }
     ]
   },
   {
@@ -59,7 +89,8 @@ export const FACTION_ITEMS: Entity[] = [
     modifiers: [
         {
             id: 'co_poi_dot', type: ModifierType.FLAT, targetStatKey: 'vit', value: '-5',
-            isPerTurn: true, name: 'Poison C.O (Base)'
+            isPerTurn: true, name: 'Poison C.O (Base)',
+            condition: "factionId === 'fac_congregation_ombre'"
         }
     ]
   },
@@ -129,11 +160,17 @@ export const FACTION_ITEMS: Entity[] = [
     subCategory: 'Gadget',
     factionId: 'fac_congregation_ombre',
     // Not part of a set
-    description: "Les effets des potions type 'poison' sont augmentés de moitié (50%).",
+    descriptionBlocks: [
+        {
+            text: "Les effets des potions type 'poison' sont augmentés de moitié (50%) (Imblocable).",
+            tag: "unblockable"
+        }
+    ],
     modifiers: [
         { 
             id: 'lotus_poison', type: ModifierType.FLAT, targetStatKey: 'poison_boost', value: '50',
-            displayTag: 'unblockable'
+            condition: "factionId === 'fac_congregation_ombre'"
+            // Removed displayTag to avoid pollution
         }
     ]
   },
@@ -186,29 +223,50 @@ export const FACTION_ITEMS: Entity[] = [
     ]
   },
 
-  // --- GEMMES SPELUNCIENNES (Crocs de Spelunca) ---
+  // --- NOUVELLES GEMMES SPELUNCIENNES (Objets Spéciaux) ---
   {
-    id: 'item_gemme_spel_1', type: EntityType.ITEM, name: "Gemme Speluncienne (Éclat)",
-    categoryId: 'special', subCategory: 'Gemme',
-    description: "Une faible lueur émane de cette pierre. +5 Puissance Gemme.",
-    modifiers: [{ id: 'gem_sp_1', type: ModifierType.FLAT, targetStatKey: 'gemme_spec', value: '5' }]
+    id: 'item_gemme_spel_std', 
+    type: EntityType.ITEM, 
+    name: "Gemme Speluncienne",
+    categoryId: 'special', 
+    subCategory: 'Gemme',
+    // La description gère l'affichage du texte imblocable. Pas de displayTag sur le modifier pour ne pas polluer l'UI.
+    descriptionBlocks: [
+        { 
+            text: "Les effets positifs sur le joueur et son familier sont augmentés de 25% (Imblocable).", 
+            tag: "unblockable" 
+        }
+    ],
+    modifiers: [
+        { 
+            id: 'gem_std_25', 
+            type: ModifierType.FLAT, 
+            targetStatKey: 'gemme_spec', 
+            value: '25'
+            // PAS DE displayTag ICI
+        }
+    ]
   },
   {
-    id: 'item_gemme_spel_2', type: EntityType.ITEM, name: "Gemme Speluncienne (Brute)",
-    categoryId: 'special', subCategory: 'Gemme',
-    description: "Une pierre pulsante. +10 Puissance Gemme.",
-    modifiers: [{ id: 'gem_sp_2', type: ModifierType.FLAT, targetStatKey: 'gemme_spec', value: '10' }]
-  },
-  {
-    id: 'item_gemme_spel_3', type: EntityType.ITEM, name: "Gemme Speluncienne (Taillée)",
-    categoryId: 'special', subCategory: 'Gemme',
-    description: "Une pierre raffinée. +15 Puissance Gemme.",
-    modifiers: [{ id: 'gem_sp_3', type: ModifierType.FLAT, targetStatKey: 'gemme_spec', value: '15' }]
-  },
-  {
-    id: 'item_gemme_spel_5', type: EntityType.ITEM, name: "Gemme Speluncienne (Royale)",
-    categoryId: 'special', subCategory: 'Gemme',
-    description: "Le summum de la cristallisation sanguine. +25 Puissance Gemme.",
-    modifiers: [{ id: 'gem_sp_5', type: ModifierType.FLAT, targetStatKey: 'gemme_spec', value: '25' }]
+    id: 'item_gemme_spel_bound', 
+    type: EntityType.ITEM, 
+    name: "Gemme Speluncienne liée",
+    categoryId: 'special', 
+    subCategory: 'Gemme',
+    descriptionBlocks: [
+        { 
+            text: "Les effets positifs sur le joueur et son familier sont augmentés de 50% (Imblocable).", 
+            tag: "unblockable" 
+        }
+    ],
+    modifiers: [
+        { 
+            id: 'gem_std_50', 
+            type: ModifierType.FLAT, 
+            targetStatKey: 'gemme_spec', 
+            value: '50'
+            // PAS DE displayTag ICI
+        }
+    ]
   }
 ];

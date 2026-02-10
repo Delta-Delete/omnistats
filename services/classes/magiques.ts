@@ -5,7 +5,7 @@ export const MAGIQUES: Entity[] = [
   // --- ANIMISTES ---
   {
     id: 'animistes', type: EntityType.CLASS, name: 'Animistes',
-    description: "Invocateur. Meute: 1(Lvl 5-9), 2(Lvl 10-19), 3(Lvl 20-29), 4(Lvl 30-39), 5(Lvl 40+). Partage 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^ stats/meute. Armes limitées (Sceptres, Épées, Tonfas, Dagues, Fouets, Boucliers) et 2 slots max. Compagnon interdit (Monture/Familier seulement).",
+    description: "Invocateur. Meute: 1(Lvl 5-9), 2(Lvl 10-19), 3(Lvl 20-29), 4(Lvl 30-39), 5(Lvl 40+). Partage 50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^ stats/meute. Armes limitées (Sceptres, Épées, Tonfas, Dagues, Fouets, Boucliers) et 2 slots max. Compagnon interdit (Monture/Familier seulement).",
     descriptionBlocks: [
         {
             text: "Peut invoquer jusqu'à {{invocation_count}} invocations qui se répartissent 50% des stats du joueur.",
@@ -42,7 +42,7 @@ export const MAGIQUES: Entity[] = [
   },
   {
       id: 'spec_necromancer', type: EntityType.SPECIALIZATION, name: 'Nécromant', parentId: 'animistes',
-      description: "Invoque un Serviteur Macabre supplémentaire. Ce serviteur possède 20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^ de vos stats (partage indépendant).",
+      description: "Invoque un Serviteur Macabre supplémentaire. Ce serviteur possède 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ de vos stats (partage indépendant).",
       modifiers: [
           { id: 'spec_nec_c', type: ModifierType.FLAT, targetStatKey: 'necro_pet_count', value: '1', name: 'Serviteur Macabre (+1)' },
           // necro_pet_share is boosted by Global Rule
@@ -52,7 +52,7 @@ export const MAGIQUES: Entity[] = [
   {
       id: 'spec_lien_spirituel', type: EntityType.SPECIALIZATION, name: 'Lien Spirituel', parentId: 'animistes',
       // Description displays the TOTAL impact (40 base + boosted part of 40)
-      description: "Intensifie le lien avec les âmes récoltées. Le bonus du Récolteur d'âmes est multiplié par quatre (+40 ^^ +{{40 * ((effect_booster || 0)/100)}} ^^ stats / 100 âmes).",
+      description: "Intensifie le lien avec les âmes récoltées. Le bonus du Récolteur d'âmes est multiplié par quatre (+40 ^^ +{{(40 * ((effect_booster || 0)/100))}} ^^ stats / 100 âmes).",
       modifiers: [
           // Base is 10 (Boosted in Class). Spec adds 30 (Boosted here). Total 40 (Boosted).
           { id: 'spec_lien_dmg', type: ModifierType.FLAT, targetStatKey: 'dmg', value: 'Math.floor(soul_count / 100) * 30 * (1 + (effect_booster || 0)/100)', name: 'Bonus Lien Spirituel (+30)' },
@@ -62,7 +62,7 @@ export const MAGIQUES: Entity[] = [
   },
   {
       id: 'spec_vaudou', type: EntityType.SPECIALIZATION, name: 'Vaudou', parentId: 'animistes',
-      description: "Pratiquez le Rituel de Sang. Sacrifiez 30% de Vitalité pour augmenter le partage de stats des invocations de 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^.",
+      description: "Pratiquez le Rituel de Sang. Sacrifiez 30% de Vitalité pour augmenter le partage de stats des invocations de 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^.",
       modifiers: [
           { id: 'v_rit_v', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '-30', toggleId: 'vaudou_ritual', toggleName: 'Rituel de Sang', name: 'Sacrifice Rituel (-30%)' },
           { id: 'v_rit_s1', type: ModifierType.FLAT, targetStatKey: 'invocation_share', value: '10 * (1 + (effect_booster || 0)/100)', toggleId: 'vaudou_ritual', name: 'Bonus Partage Meute (+10)' },
@@ -87,7 +87,7 @@ export const MAGIQUES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Arcanes sombres',
     parentId: 'ensorceleurs',
-    description: "Pour chaque bonus annulé (allié/ennemi), vous gagnez 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de Vitalité, Vitesse et Dégâts (Max 6 stacks).",
+    description: "Pour chaque bonus annulé (allié/ennemi), vous gagnez 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de Vitalité, Vitesse et Dégâts (Max 6 stacks).",
     modifiers: [
         { 
             id: 'spec_as_vit', 
@@ -193,12 +193,12 @@ export const MAGIQUES: Entity[] = [
     parentId: 'guerisseurs',
     descriptionBlocks: [
         {
-            text: "En cas d'Échec Critique, le Guérisseur voit sa prochaine attaque reçue réduite de 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^.",
+            text: "En cas d'Échec Critique, le Guérisseur voit sa prochaine attaque reçue réduite de 50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^.",
             tag: "passive",
             title: "Protection Miraculeuse"
         },
         {
-            text: "Les effets des Remèdes utilisés lors d'un combat sont augmentés de 50% ^^ +{{50 * ((effect_booster || 0)/100)}}% ^^.",
+            text: "Les effets des Remèdes utilisés lors d'un combat sont augmentés de 50% ^^ +{{(50 * ((effect_booster || 0)/100))}}% ^^.",
             tag: "passive",
             title: "Apothicaire Divin"
         }
@@ -220,7 +220,7 @@ export const MAGIQUES: Entity[] = [
     parentId: 'guerisseurs',
     descriptionBlocks: [
         {
-            text: "À chaque fois que le Guérisseur fait un Coup Critique, tous les membres de son équipe voient leur vitalité augmenter de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^.",
+            text: "À chaque fois que le Guérisseur fait un Coup Critique, tous les membres de son équipe voient leur vitalité augmenter de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^.",
             tag: "active",
             title: "Vitalité Partagée"
         }
@@ -245,7 +245,7 @@ export const MAGIQUES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Arcanes protectrices',
     parentId: 'mages',
-    description: "Bonus de 33% ^^ +{{33 * ((effect_booster || 0)/100)}}% ^^ sur la magie de soutien (guérison, vitesse, dégâts) bénéfique aux alliés.",
+    description: "Bonus de 33% ^^ +{{(33 * ((effect_booster || 0)/100))}}% ^^ sur la magie de soutien (guérison, vitesse, dégâts) bénéfique aux alliés.",
     modifiers: []
   },
   {
@@ -253,7 +253,7 @@ export const MAGIQUES: Entity[] = [
     type: EntityType.SPECIALIZATION,
     name: 'Arcanes destructrices',
     parentId: 'mages',
-    description: "Bonus de 25% ^^ +{{25 * ((effect_booster || 0)/100)}}% ^^ sur la magie de destruction bénéfique aux alliés.",
+    description: "Bonus de 25% ^^ +{{(25 * ((effect_booster || 0)/100))}}% ^^ sur la magie de destruction bénéfique aux alliés.",
     modifiers: []
   },
   {
@@ -270,7 +270,7 @@ export const MAGIQUES: Entity[] = [
         {
             title: "Liste des effets (Valeurs Boostées)",
             isCollapsible: true,
-            text: "- Pyrokinésie : l'adversaire perd 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de vitalité.\n- Elektrokinésie : l'adversaire perd 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de vitesse.\n- Géokinésie : l'adversaire perd 5% ^^ +{{5 * ((effect_booster || 0)/100)}}% ^^ de dégâts et le lanceur en gagne 5% ^^ +{{5 * ((effect_booster || 0)/100)}}% ^^.\n- Hydromancie : le lanceur gagne 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de vitalité.\n- Aérokinésie : le lanceur gagne 10% ^^ +{{10 * ((effect_booster || 0)/100)}}% ^^ de vitesse.",
+            text: "- Pyrokinésie : l'adversaire perd 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de vitalité.\n- Elektrokinésie : l'adversaire perd 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de vitesse.\n- Géokinésie : l'adversaire perd 5% ^^ +{{(5 * ((effect_booster || 0)/100))}}% ^^ de dégâts et le lanceur en gagne 5% ^^ +{{(5 * ((effect_booster || 0)/100))}}% ^^.\n- Hydromancie : le lanceur gagne 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de vitalité.\n- Aérokinésie : le lanceur gagne 10% ^^ +{{(10 * ((effect_booster || 0)/100))}}% ^^ de vitesse.",
             tag: "info"
         }
     ],
@@ -322,7 +322,7 @@ export const MAGIQUES: Entity[] = [
   },
   {
     id: 'spec_lutteur', type: EntityType.SPECIALIZATION, name: 'Lutteur', parentId: 'pugilistes',
-    description: "Si vous combattez à mains nues (aucune arme), l'effet de vos postures est augmenté de 20% ^^ +{{20 * ((effect_booster || 0)/100)}}% ^^.",
+    description: "Si vous combattez à mains nues (aucune arme), l'effet de vos postures est augmenté de 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^.",
     modifiers: [
       { id: 'lutteur_v', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '20 * (1 + (effect_booster || 0)/100)', toggleId: 'toggle_lutteur_unarmed', condition: "countItems('weapon') === 0" },
       { id: 'lutteur_s', type: ModifierType.ALT_PERCENT, targetStatKey: 'spd', value: '20 * (1 + (effect_booster || 0)/100)', toggleId: 'toggle_lutteur_unarmed', condition: "countItems('weapon') === 0" },

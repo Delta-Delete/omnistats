@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users } from 'lucide-react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { CalculationResult, StatDefinition, StatResult, StatDetail, EntityType } from '../../types';
+import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users, BarChart3, Radar, Coins } from 'lucide-react';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar as RechartsRadar } from 'recharts';
+import { CalculationResult, StatDefinition, StatResult, StatDetail, EntityType, Entity } from '../../types';
 import { getStatStyle, getTagLabel, getTagColor, AnimatedCounter, CollapsibleDescription, toFantasyTitle } from './utils';
 
 interface DescriptionItem {
@@ -17,42 +17,43 @@ interface CharacterSheetProps {
     result: CalculationResult;
     stats: StatDefinition[];
     activeDescriptions: DescriptionItem[];
+    activeEntities: Entity[]; // NEW: Required for Gold calculation
 }
 
-export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, activeDescriptions }) => {
+export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, activeDescriptions, activeEntities }) => {
     const [showHiddenStats, setShowHiddenStats] = useState(false);
+    const [viewMode, setViewMode] = useState<'radar' | 'bars'>('radar');
 
     // --- Computed Visual Data ---
     const chartStats = useMemo(() => stats.filter(s => ['vit', 'spd', 'dmg'].includes(s.key)), [stats]);
     const chartLabelMap: Record<string, string> = { vit: 'HP', spd: 'SPD', dmg: 'DMG' };
     
+    // Calculate Max values for scaling (dynamic soft caps for visualization)
+    const maxValues = useMemo(() => {
+        return {
+            vit: Math.max(2000, (result.stats['vit']?.finalValue || 0) * 1.2),
+            spd: Math.max(500, (result.stats['spd']?.finalValue || 0) * 1.2),
+            dmg: Math.max(500, (result.stats['dmg']?.finalValue || 0) * 1.2)
+        };
+    }, [result.stats]);
+
     const chartData = useMemo(() => {
-        const maxStatVal = Math.max(...chartStats.map(s => (result.stats[s.key] as StatResult | undefined)?.finalValue || 0), 100);
         return chartStats.map(s => ({ 
             subject: chartLabelMap[s.key] || s.label, 
             A: (result.stats[s.key] as StatResult | undefined)?.finalValue || 0, 
-            fullMark: maxStatVal 
+            fullMark: maxValues[s.key as keyof typeof maxValues] || 100 
         }));
-    }, [chartStats, result.stats]);
+    }, [chartStats, result.stats, maxValues]);
 
     const visibleStats = useMemo(() => {
         return stats.filter(s => { 
-            // 1. Si l'œil est activé, on montre tout
             if (showHiddenStats) return true; 
-            
-            // 2. On cache toujours le groupe "Hidden" (interne) si l'œil est fermé
             if (s.group === 'Hidden') return false; 
-            
-            // 3. On cache les stats principales affichées dans les cartes du haut
             if (['vit', 'spd', 'dmg', 'absorption'].includes(s.key)) return false; 
             if (['crit_primary', 'crit_secondary'].includes(s.key)) return false; 
-            
-            // 4. FILTRE DE VALEUR : Si la valeur finale est 0, on cache (sauf si œil activé)
             const statRes = result.stats[s.key] as StatResult | undefined; 
             const val = statRes?.finalValue || 0; 
-            
             if (Math.abs(val) < 0.01) return false;
-
             return true; 
         });
     }, [stats, showHiddenStats, result.stats]);
@@ -65,30 +66,31 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
         showHiddenStats
     );
 
-    // --- TEAM SPEED CALCULATION ---
     const totalSummonSpeed = useMemo(() => {
         return result.activeSummons.reduce((acc, s) => acc + (s.stats.spd * s.count), 0);
     }, [result.activeSummons]);
 
     const totalTeamSpeed = (result.stats['spd']?.finalValue || 0) + totalSummonSpeed;
 
-    // Helper to render clean numbers in tooltip
+    // Calculate Total Gold Cost from active entities
+    const totalGoldCost = useMemo(() => {
+        return activeEntities
+            .filter(e => e.type === EntityType.ITEM)
+            .reduce((acc, item) => acc + (item.goldCost || 0), 0);
+    }, [activeEntities]);
+
     const renderVal = (val: number, isPercent = false, forcePlus = false) => {
         if (Math.abs(val) < 0.01) return isPercent ? '0%' : '0';
-        // Remove trailing zeros using parseFloat
         const formatted = parseFloat(val.toFixed(2));
         const sign = (forcePlus && formatted > 0) ? '+' : '';
         return `${sign}${formatted}${isPercent ? '%' : ''}`;
     };
 
-    // Helper to render Per Turn gain cleanly (e.g. "+30 & +5%/tr")
     const renderPerTurn = (stat: StatResult | undefined, colorClass: string) => {
         if (!stat) return null;
         const flat = stat.perTurn || 0;
         const pct = stat.perTurnPercent || 0;
-        
         if (flat === 0 && pct === 0) return null;
-
         return (
             <span className={`${colorClass} font-bold ml-1 text-[9px]`}>
                 {flat > 0 ? `+${flat}` : ''}
@@ -99,7 +101,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
         );
     };
 
-    // Helper to render detailed breakdown lists
     const renderDetailList = (list: StatDetail[] | undefined, color: string) => {
         if (!list || list.length === 0) return null;
         return (
@@ -122,9 +123,25 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                     <h3 className="text-lg font-perrigord text-white flex items-center tracking-wide">
                         <Activity size={20} className="mr-2 text-indigo-400" /> {toFantasyTitle("Aperçu Global")}
                     </h3>
+                    <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+                        <button 
+                            onClick={() => setViewMode('radar')}
+                            className={`p-1.5 rounded transition-all ${viewMode === 'radar' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                            title="Vue Radar"
+                        >
+                            <Radar size={16} />
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('bars')}
+                            className={`p-1.5 rounded transition-all ${viewMode === 'bars' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                            title="Vue Barres (Stats Brutes)"
+                        >
+                            <BarChart3 size={16} />
+                        </button>
+                    </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 grid grid-cols-2 gap-3">
+                    <div className="flex-1 grid grid-cols-2 gap-3 min-w-0">
                         <div className="bg-slate-950/50 border border-emerald-500/30 p-3 rounded-lg relative overflow-hidden group">
                             <div className="flex justify-between items-start mb-1">
                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Vitalité</span>
@@ -150,8 +167,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                                 <span>Base {result.stats['spd']?.base} <span className="text-amber-500">+{result.stats['spd']?.finalValue - result.stats['spd']?.base}</span></span>
                                 {renderPerTurn(result.stats['spd'], 'text-amber-400')}
                             </div>
-                            
-                            {/* TEAM SPEED INDICATOR */}
                             {totalSummonSpeed > 0 && (
                                 <div className="mt-2 pt-2 border-t border-amber-500/20 flex items-center justify-between animate-in fade-in slide-in-from-bottom-1">
                                     <span className="text-[9px] font-bold text-amber-200/70 uppercase tracking-wider flex items-center" title="Vitesse cumulée (Joueur + Invocations)">
@@ -202,16 +217,64 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                             )}
                         </div>
                     </div>
-                    <div className="w-full sm:w-1/3 min-h-[160px] bg-slate-950/30 rounded-lg border border-slate-800 flex items-center justify-center relative p-2">
-                        <div className="absolute inset-0 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none"></div>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-                                <PolarGrid stroke="#334155" strokeWidth={0.5} />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
-                                <Radar name="Stats" dataKey="A" stroke="#818cf8" strokeWidth={2} fill="#6366f1" fillOpacity={0.4} />
-                            </RadarChart>
-                        </ResponsiveContainer>
+                    
+                    {/* VISUALIZATION CONTAINER */}
+                    <div className="w-full sm:w-1/3 min-w-0 flex flex-col gap-2">
+                        <div className="flex-1 bg-slate-950/30 rounded-lg border border-slate-800 flex items-center justify-center relative p-2 overflow-hidden h-40">
+                            {viewMode === 'radar' ? (
+                                <>
+                                    <div className="absolute inset-0 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none"></div>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                                            <PolarGrid stroke="#334155" strokeWidth={0.5} />
+                                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 9, fontWeight: 'bold' }} />
+                                            <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
+                                            <RechartsRadar name="Stats" dataKey="A" stroke="#818cf8" strokeWidth={2} fill="#6366f1" fillOpacity={0.4} />
+                                        </RadarChart>
+                                    </ResponsiveContainer>
+                                </>
+                            ) : (
+                                <div className="w-full h-full flex flex-col justify-center space-y-2 px-2">
+                                    {['vit', 'spd', 'dmg'].map(key => {
+                                        const statRes = result.stats[key] as StatResult | undefined;
+                                        if (!statRes) return null;
+
+                                        const bd = statRes.breakdown;
+                                        const val = Math.ceil((bd.base + bd.flat) * (1 + (bd.percentAdd / 100)));
+
+                                        const max = maxValues[key as keyof typeof maxValues] || 100;
+                                        const percent = Math.min(100, (val / max) * 100);
+                                        
+                                        let color = 'bg-slate-500';
+                                        if(key === 'vit') color = 'bg-emerald-500';
+                                        if(key === 'spd') color = 'bg-amber-500';
+                                        if(key === 'dmg') color = 'bg-rose-500';
+
+                                        return (
+                                            <div key={key} className="w-full">
+                                                <div className="flex justify-between text-[9px] uppercase font-bold mb-0.5">
+                                                    <span className="text-slate-400">{key}</span>
+                                                    <span className="text-white">{val}</span>
+                                                </div>
+                                                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${percent}%` }}></div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* TOTAL GOLD DISPLAY */}
+                        <div className="flex items-center justify-between bg-black/40 border border-yellow-500/20 rounded-lg p-2 px-3">
+                            <div className="flex items-center text-xs font-bold text-yellow-500 uppercase tracking-wide">
+                                <Coins size={14} className="mr-2" /> Valeur Équipement
+                            </div>
+                            <div className="font-mono text-sm font-bold text-yellow-300">
+                                {totalGoldCost} Po
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -225,7 +288,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                     </div>
                     <div className="p-4 space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
                         {activeDescriptions.map(ent => {
-                            // Logic: Hide Header if it's a GLOBAL_RULE (to hide "Affichages Lore")
                             const showHeader = ent.type !== EntityType.GLOBAL_RULE;
                             
                             return (

@@ -6,6 +6,8 @@ import { evaluateFormula } from '../../../services/engine';
 import { SetBonusesPanel } from '../SetBonusesPanel';
 import { SummonsPanel } from '../SummonsPanel';
 import { toFantasyTitle } from '../utils';
+import { CollapsibleCard } from '../../ui/Card';
+import { useStatusLogic } from '../../../hooks/useStatusLogic';
 
 interface StatusPanelProps {
     selection: PlayerSelection;
@@ -18,93 +20,13 @@ interface StatusPanelProps {
 
 export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelection, activeEntities, allItems, context, result }) => {
     
-    // FACTIONS (IDENTITY)
-    const activeFactionsDetails = React.useMemo(() => {
-        return activeEntities.filter(e => e.type === EntityType.FACTION);
-    }, [activeEntities]);
-
-    // GUILDS FILTERING (Updated to check both primary and secondary)
-    const activeGuildsWithToggles = React.useMemo(() => {
-        return activeEntities.filter(e => e.type === EntityType.GUILD).filter(guild => {
-            // Check Primary Rank
-            const rankId = selection.guildRanks?.[guild.id];
-            const rank = guild.guildRanks?.find(r => r.id === rankId);
-            const hasPrimaryToggle = rank?.modifiers?.some(m => !!m.toggleId);
-
-            // Check Secondary Rank (if exists)
-            const secRankId = selection.guildSecondaryRanks?.[guild.id];
-            const secRank = guild.secondaryGuildRanks?.find(r => r.id === secRankId);
-            const hasSecToggle = secRank?.modifiers?.some(m => !!m.toggleId);
-
-            return hasPrimaryToggle || hasSecToggle;
-        });
-    }, [activeEntities, selection.guildRanks, selection.guildSecondaryRanks]);
-
-    // TOGGLES CONFIGURATION
-    const CUSTOM_PLACED_TOGGLES = [
-        'curse_lvl_1', 'curse_lvl_2', 'curse_lvl_3', 
-        'vaudou_ritual', 
-        'organ_heart', 'organ_lung', 'organ_liver', 
-        'pos_mante', 'pos_serpent', 'pos_lievre', 'pos_singe', 
-        'toggle_protection_ally', 'toggle_zenitude', 'toggle_lutteur_unarmed',
-        'career_card_spade', 'career_card_club', 'career_card_diamond', 'career_card_heart', 'career_card_royal',
-        'career_athlete_second_wind',
-        'toggle_respirator_active' // ADDED: Hides the main respirator toggle (handled in Inventory)
-    ];
-
-    const toggleConfig = React.useMemo(() => {
-        const standalone: {id: string, label: string}[] = [];
-        const groups: Record<string, {id: string, label: string}[]> = {};
-        const seenIds = new Set<string>();
-        activeEntities.forEach(ent => { 
-            (ent.modifiers || []).forEach(mod => { 
-                if (mod.toggleId && !seenIds.has(mod.toggleId)) { 
-                    if (mod.toggleGroup === 'arlequin_card') return; 
-                    if (mod.toggleGroup === 'career_artist_deck') return; 
-                    if (mod.toggleGroup === 'thanato_organ') return; 
-                    if (mod.toggleGroup === 'pugilist_stance') return; 
-                    if (CUSTOM_PLACED_TOGGLES.includes(mod.toggleId)) return; 
-                    
-                    // Exclude specific guild rank bonuses (handled in Guild card)
-                    if (mod.toggleId === 'guild_rank_bonus') return;
-                    if (mod.toggleId.startsWith('toggle_cc_')) return;
-                    if (mod.toggleId.startsWith('toggle_croc_')) return;
-
-                    seenIds.add(mod.toggleId); 
-                    const item = { id: mod.toggleId, label: mod.toggleName || mod.toggleId }; 
-                    if (mod.toggleGroup) { 
-                        if (!groups[mod.toggleGroup]) groups[mod.toggleGroup] = []; 
-                        groups[mod.toggleGroup].push(item); 
-                    } else { standalone.push(item); } 
-                } 
-            }); 
-        });
-        return { standalone, groups };
-    }, [activeEntities]);
-
-    const toggleEffect = (id: string, groupName?: string) => { 
-        setSelection(prev => { 
-            const newToggles = { ...prev.toggles }; 
-            if (groupName) { 
-                // LOGIC UPDATE: Allow Deselection in Groups
-                const wasActive = newToggles[id];
-                const groupItems = toggleConfig.groups[groupName] || []; 
-                
-                // 1. Reset all in group to false
-                groupItems.forEach(item => { 
-                    newToggles[item.id] = false; 
-                }); 
-                
-                // 2. Only activate if it wasn't already active (Toggle behavior)
-                if (!wasActive) {
-                    newToggles[id] = true;
-                }
-            } else { 
-                newToggles[id] = !newToggles[id]; 
-            } 
-            return { ...prev, toggles: newToggles }; 
-        }); 
-    };
+    // Use the custom hook for logic
+    const { 
+        activeFactionsDetails, 
+        activeGuildsWithToggles, 
+        toggleConfig, 
+        toggleEffect 
+    } = useStatusLogic({ selection, setSelection, activeEntities, context });
 
     const renderGuildStatus = (status?: string) => {
         switch(status) {
@@ -123,7 +45,6 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
     const renderRankToggle = (rank: any) => {
         if (!rank || !rank.modifiers) return null;
         
-        // Find if there's a toggle in this rank
         const toggleMod = rank.modifiers.find((m: any) => !!m.toggleId);
         if (!toggleMod) return null;
 
@@ -162,14 +83,24 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
         );
     };
 
+    // Helper for Group Name Display
+    const formatGroupName = (groupName: string) => {
+        if (groupName === 'tritheiste_blessing') return 'Bénédiction djöllfuline';
+        if (groupName === 'rp_location') return 'Localisation RP';
+        if (groupName === 'Les poisons') return 'Poisons (Voleur)';
+        return groupName.replace(/_/g, ' ');
+    };
+
     return (
-        <div className="space-y-6 mt-6">
+        <div className="space-y-4">
             {/* 1. FACTIONS (IDENTITY ONLY) */}
             {activeFactionsDetails.length > 0 && (
-                <div className="bg-indigo-950/20 border border-indigo-500/20 p-5 rounded-xl shadow-lg relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-indigo-500/20">
-                        <h4 className="text-sm font-perrigord text-indigo-300 flex items-center tracking-wide"><Flag size={16} className="mr-2" /> {toFantasyTitle("Faction (Identité)")}</h4>
-                    </div>
+                <CollapsibleCard 
+                    id="identity_factions_panel"
+                    title={toFantasyTitle("Faction (Identité)")} 
+                    icon={Flag}
+                    className="bg-indigo-950/20 border-indigo-500/20"
+                >
                     <div className="space-y-3">
                         {activeFactionsDetails.map((fac, idx) => (
                             <div key={idx} className="flex items-center bg-slate-950/50 p-3 rounded border border-slate-800">
@@ -179,7 +110,6 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
                                 <div>
                                     <div className="text-sm font-bold text-slate-200 flex items-center gap-2">
                                         {fac.name}
-                                        {/* PRESTIGE STARS DISPLAY */}
                                         {fac.prestige && fac.prestige > 0 && (
                                             <div className="flex space-x-0.5 ml-2" title={`Prestige: ${fac.prestige}`}>
                                                 {Array.from({ length: fac.prestige }).map((_, i) => (
@@ -193,7 +123,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
                             </div>
                         ))}
                     </div>
-                </div>
+                </CollapsibleCard>
             )}
 
             {/* 2. ITEM SETS */}
@@ -201,8 +131,11 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
 
             {/* 3. GUILDS (ONLY WITH TOGGLES) */}
             {activeGuildsWithToggles.length > 0 && (
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg">
-                    <h4 className="text-sm font-perrigord text-slate-300 mb-3 flex items-center tracking-wide"><Users size={16} className="mr-2" /> {toFantasyTitle("Guildes Actives")}</h4>
+                <CollapsibleCard 
+                    id="guilds_active_panel"
+                    title={toFantasyTitle("Guildes Actives")} 
+                    icon={Users}
+                >
                     <div className="space-y-2">
                         {activeGuildsWithToggles.map((guild, idx) => {
                             const selectedRankId = selection.guildRanks?.[guild.id];
@@ -238,45 +171,71 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    {/* Render Toggles for Primary Rank */}
                                     {renderRankToggle(selectedRank)}
-                                    
-                                    {/* Render Toggles for Secondary Rank */}
                                     {renderRankToggle(selectedSecRank)}
                                 </div>
                             );
                         })}
                     </div>
-                </div>
+                </CollapsibleCard>
             )}
 
-            {/* 4. SITUATIONAL TOGGLES (Filtered) */}
+            {/* 4. SITUATIONAL TOGGLES */}
             {(toggleConfig.standalone.length > 0 || Object.keys(toggleConfig.groups).length > 0) && (
-                <div className="bg-indigo-900/10 border border-indigo-500/30 p-5 rounded-xl shadow-lg">
-                    <h4 className="text-sm font-perrigord text-indigo-300 mb-3 flex items-center tracking-wide"><ToggleRight size={16} className="mr-2" /> {toFantasyTitle("Effets Situationnels")}</h4>
+                <CollapsibleCard 
+                    id="situational_toggles_panel"
+                    title={toFantasyTitle("Effets Situationnels")} 
+                    icon={ToggleRight}
+                    className="bg-indigo-900/10 border-indigo-500/30"
+                >
                     <div className="space-y-4">
                         {toggleConfig.standalone.length > 0 && (
                             <div className="space-y-2">
                                 {toggleConfig.standalone.map(t => { 
                                     const isActive = selection.toggles[t.id] || false; 
-                                    return (<button key={t.id} onClick={() => toggleEffect(t.id)} className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${isActive ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-600'}`}><span className="text-sm font-medium">{t.label}</span>{isActive ? <ToggleRight size={24} className="text-indigo-400" /> : <ToggleLeft size={24} className="text-slate-600" />}</button>)
+                                    return (
+                                        <button key={t.id} onClick={() => toggleEffect(t.id)} className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${isActive ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-600'}`}>
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-sm font-medium text-left">{t.label}</span>
+                                                {t.valueDisplay && (
+                                                    <span className={`text-[10px] font-mono font-bold mt-0.5 ${isActive ? 'text-emerald-300' : 'text-slate-600'}`}>
+                                                        {t.valueDisplay}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {isActive ? <ToggleRight size={24} className="text-indigo-400" /> : <ToggleLeft size={24} className="text-slate-600" />}
+                                        </button>
+                                    )
                                 })}
                             </div>
                         )}
                         {Object.entries(toggleConfig.groups).map(([groupName, items]) => (
                             <div key={groupName} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 border-b border-slate-800 pb-1">{groupName.replace('rp_location', 'Localisation RP')}</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 border-b border-slate-800 pb-1">
+                                    {formatGroupName(groupName)}
+                                </label>
                                 <div className="flex flex-col gap-2">
-                                    {(items as {id: string, label: string}[]).map(t => { 
+                                    {(items as {id: string, label: string, valueDisplay?: string}[]).map(t => { 
                                         const isActive = selection.toggles[t.id] || false; 
-                                        return (<button key={t.id} onClick={() => toggleEffect(t.id, groupName)} className={`flex items-center px-2 py-1.5 rounded transition-colors ${isActive ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:text-white'}`}>{isActive ? <CircleCheck size={16} className="mr-2 fill-indigo-500/10" /> : <Circle size={16} className="mr-2 text-slate-600" />}<span className="text-sm">{t.label}</span></button>)
+                                        return (
+                                            <button key={t.id} onClick={() => toggleEffect(t.id, groupName)} className={`flex items-center px-2 py-1.5 rounded transition-colors w-full text-left ${isActive ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:text-white'}`}>
+                                                <div className="flex items-center flex-1">
+                                                    {isActive ? <CircleCheck size={16} className="mr-2 flex-shrink-0 fill-indigo-500/10" /> : <Circle size={16} className="mr-2 flex-shrink-0 text-slate-600" />}
+                                                    <span className="text-sm">{t.label}</span>
+                                                    {t.valueDisplay && (
+                                                        <span className={`text-[10px] font-mono font-bold ml-2 whitespace-nowrap ${isActive ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                                            {t.valueDisplay}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        )
                                     })}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                </CollapsibleCard>
             )}
 
             {/* 5. SUMMONS */}
