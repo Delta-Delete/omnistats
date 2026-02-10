@@ -255,7 +255,7 @@ export const TONFAS: Entity[] = [
     descriptionBlocks: [
         {
             title: "Harangue du Jarl",
-            text: "Invoque 3 Jarls (Vitalité : {{750 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)}} / Vitesse : {{500 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)}} / Dégâts : {{250 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)}}) qui combattent aux côtés du joueur. Disparaissent si le joueur est K.O.",
+            text: "Invoque 3 Jarls (Vitalité : {{750 * (1 + (effect_booster || 0)/100)}} / Vitesse : {{500 * (1 + (effect_booster || 0)/100)}} / Dégâts : {{250 * (1 + (effect_booster || 0)/100)}}) qui combattent aux côtés du joueur. Disparaissent si le joueur est K.O.",
             tag: "unblockable"
         }
     ],
@@ -270,9 +270,9 @@ export const TONFAS: Entity[] = [
             name: 'Jarl',
             countValue: '3',
             stats: {
-                vit: '750 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)',
-                spd: '500 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)',
-                dmg: '250 * (1 + (effect_booster || 0)/100 + (summon_mult_bonus || 0)/100)'
+                vit: '750 * (1 + (effect_booster || 0)/100)',
+                spd: '500 * (1 + (effect_booster || 0)/100)',
+                dmg: '250 * (1 + (effect_booster || 0)/100)'
             }
         }
     ]

@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, RefreshCw, Hammer, Feather, AlertTriangle, Sword, Shield, Coins, Ban, Anvil } from 'lucide-react';
+import { Plus, X, RefreshCw, Hammer, Coins, Ban, AlertTriangle, Sword, Shield, Feather, Anvil, PawPrint, Zap, User, Music } from 'lucide-react';
 import { ItemSlot, Entity, Modifier, EntityType, ModifierType } from '../../types';
-import { getStatStyle, calculateEnhancedStats, getRarityStyle } from './utils';
+import { getStatConfig, calculateEnhancedStats, getRarityStyle } from './utils';
 import { checkCondition } from '../../services/engine';
 import { ItemTooltip } from './ItemTooltip';
 
@@ -32,16 +32,11 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
         if (!selectedItem) return;
         setMousePos({ x: e.clientX, y: e.clientY });
         setTooltipStatus('loading');
-        
-        timerRef.current = setTimeout(() => {
-            setTooltipStatus('visible');
-        }, 500);
+        timerRef.current = setTimeout(() => { setTooltipStatus('visible'); }, 500);
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (tooltipStatus !== 'idle') {
-            setMousePos({ x: e.clientX, y: e.clientY });
-        }
+        if (tooltipStatus !== 'idle') { setMousePos({ x: e.clientX, y: e.clientY }); }
     };
 
     const handleMouseLeave = () => {
@@ -49,11 +44,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
         setTooltipStatus('idle');
     };
 
-    useEffect(() => {
-        return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-        };
-    }, []);
+    useEffect(() => { return () => { if (timerRef.current) clearTimeout(timerRef.current); }; }, []);
 
     // Find the faction entity if the item is linked to one
     const faction = selectedItem?.factionId ? allItems.find(e => e.id === selectedItem.factionId && e.type === EntityType.FACTION) : null;
@@ -76,8 +67,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
     const mods = selectedItem.modifiers || [];
     const displayCost = effectiveCost !== undefined ? effectiveCost : selectedItem.equipmentCost;
     const isCostModified = effectiveCost !== undefined && effectiveCost !== selectedItem.equipmentCost;
-    const goldCost = selectedItem.goldCost;
-
+    
     const displayContext = playerContext || {};
 
     const itemFactionId = selectedItem.factionId;
@@ -86,9 +76,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
 
     const isReservedItem = selectedItem.description?.includes('{Réservé');
     const hasFailedConditions = isReservedItem && mods.some(m => m.condition && !checkCondition(m.condition, displayContext));
-
     const isTungstenError = selectedItem.isTungsten && totalTungstenCount > 1;
-
     const isRestricted = isFactionMismatch || hasFailedConditions || isTungstenError;
     
     let restrictionLabel = '';
@@ -98,6 +86,31 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
 
     const rarityStyle = getRarityStyle(selectedItem.rarity);
     const isFusion = selectedItem.id.startsWith('fused_wep_') || selectedItem.subCategory === 'Amalgame';
+
+    // --- ZEPHYR BOOST CHECK ---
+    const ZEPHYR_ID = 'pendentif_zephyrien';
+    const specialItems = displayContext.specialItems || [];
+    const bonusItems = displayContext.bonusItems || [];
+    const equippedMap = displayContext.equippedItems || {};
+    
+    const hasZephyrPendant = specialItems.includes(ZEPHYR_ID) || 
+                             bonusItems.includes(ZEPHYR_ID) || 
+                             Object.values(equippedMap).includes(ZEPHYR_ID);
+
+    const isMountOrFamiliar = selectedItem.categoryId === 'mount' || selectedItem.categoryId === 'familiar';
+    const applyZephyrBoost = hasZephyrPendant && isMountOrFamiliar;
+
+    // --- ICON LOGIC ---
+    const renderDefaultIcon = () => {
+        switch(selectedItem.categoryId) {
+            case 'mount': return <PawPrint size={14} />;
+            case 'familiar': return <Zap size={14} />;
+            case 'companion': return <User size={14} />;
+            case 'partition': return <Music size={14} />;
+            case 'weapon': return <Sword size={14} />;
+            default: return <Shield size={14} />;
+        }
+    };
 
     return (
         <>
@@ -121,7 +134,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
                             <img src={selectedItem.icon} className="w-8 h-8 object-contain" alt="" />
                         ) : (
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-slate-900/50 border border-slate-700/50 ${rarityStyle.text}`}>
-                                {selectedItem.categoryId === 'weapon' ? <Sword size={14}/> : <Shield size={14} />}
+                                {renderDefaultIcon()}
                             </div>
                         )}
                     </div>
@@ -145,42 +158,46 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
 
                 {/* RIGHT: INFO */}
                 <div className="flex-1 flex flex-col justify-center px-3 min-w-0 z-10">
-                    {/* TOP ROW */}
-                    <div className="flex items-center justify-between mb-1">
+                    {/* TOP ROW: NAME & METADATA */}
+                    <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center min-w-0 flex-1">
                             {isAlleviated && (
-                                <Feather size={10} className="text-amber-500 mr-1.5 flex-shrink-0" />
+                                <div className="mr-2 flex items-center justify-center w-6 h-6 rounded-full bg-amber-900/30 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]" title="Poids Allégé (Force Naturelle)">
+                                    <Feather size={14} className="text-amber-400" />
+                                </div>
                             )}
                             <span className={`text-xs font-bold truncate mr-2 ${isRestricted ? 'text-red-400 line-through decoration-red-500/50' : rarityStyle.text}`}>
                                 {selectedItem.name}
                             </span>
-                            
-                            {selectedItem.isCraftable && (
-                                <div className="text-emerald-500/70 mr-1" title="Craftable"><Anvil size={12} /></div>
-                            )}
-                            {selectedItem.isTungsten && (
-                                <div className="" title="Tungstène (Unique)">
-                                    <img src="https://i.servimg.com/u/f19/18/61/88/98/iczne_10.png" alt="Tungstène" className={`w-5 h-5 object-contain ${isTungstenError ? 'opacity-100 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]' : 'opacity-80'}`} />
-                                </div>
-                            )}
                         </div>
                         
-                        <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-                            {displayCost && displayCost > 0 && (
-                                <div className={`flex items-center px-1 py-0.5 rounded text-[9px] font-mono leading-none border ${isCostModified ? 'bg-green-900/40 border-green-500/50 text-green-300' : 'bg-black/40 border-slate-700 text-slate-400'}`}>
-                                    <Hammer size={10} className="mr-1" />{displayCost}
+                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+                            {selectedItem.isCraftable && (
+                                <div className="flex items-center justify-center w-6 h-6 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-400 shadow-sm" title="Craftable">
+                                    <Anvil size={14} />
                                 </div>
                             )}
-                            {goldCost && (
-                                <div className="flex items-center px-1 py-0.5 rounded text-[9px] font-mono leading-none border bg-black/40 border-yellow-500/30 text-yellow-400">
-                                    <Coins size={10} className="mr-1" />{goldCost} Po
+                            {selectedItem.isTungsten && (
+                                <div className={`flex items-center justify-center w-6 h-6 rounded border shadow-sm ${isTungstenError ? 'bg-red-950 border-red-500 animate-pulse' : 'bg-red-950/50 border-red-500/50'}`} title="Tungstène (Unique)">
+                                    <img src="https://i.servimg.com/u/f19/18/61/88/98/iczne_10.png" alt="Tungstène" className="w-4 h-4 object-contain filter drop-shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
+                                </div>
+                            )}
+
+                            {displayCost && displayCost > 0 && (
+                                <div className={`flex items-center px-2 py-0.5 h-6 rounded text-[10px] font-mono font-bold leading-none border ${isCostModified ? 'bg-green-900 border-green-500 text-green-300' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
+                                    <Hammer size={12} className="mr-1.5 text-slate-400" />{displayCost}
+                                </div>
+                            )}
+                            {selectedItem.goldCost && (
+                                <div className="flex items-center px-2 py-0.5 h-6 rounded text-[10px] font-mono font-bold leading-none border bg-yellow-950/40 border-yellow-600/50 text-yellow-400">
+                                    <Coins size={12} className="mr-1.5 text-yellow-500" />{selectedItem.goldCost}
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* BOTTOM ROW */}
-                    <div className="flex items-center gap-1.5 overflow-hidden h-5">
+                    {/* BOTTOM ROW: STATS / ERROR */}
+                    <div className="flex items-center gap-2 overflow-hidden h-5">
                         {isRestricted ? (
                             <div className="flex items-center text-[9px] text-red-300 bg-red-950/80 border border-red-500/30 px-1.5 py-0.5 rounded w-full font-bold uppercase animate-pulse">
                                 {isTungstenError ? <Ban size={10} className="mr-1.5" /> : <AlertTriangle size={10} className="mr-1.5"/>} 
@@ -188,15 +205,11 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
                             </div>
                         ) : (
                             <>
-                                <div className="flex gap-1 flex-shrink-0">
-                                    {isFusion && <span className="text-[8px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1 rounded flex items-center">Fusion</span>}
-                                    {selectedItem.tags?.slice(0, 1).map(t => (
-                                        <span key={t} className="text-[8px] bg-slate-800 text-slate-400 border border-slate-700 px-1 rounded truncate max-w-[60px]">{t}</span>
-                                    ))}
-                                </div>
-
-                                <div className="flex gap-1.5 text-[10px] font-mono font-bold items-center overflow-hidden">
+                                {isFusion && <span className="text-[8px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1 rounded flex items-center">Fusion</span>}
+                                
+                                <div className="flex gap-2 items-center overflow-hidden">
                                     {mods.length > 0 ? mods.slice(0, 3).map((m: Modifier, idx) => {
+                                        // Upgrade Calculation Logic (Weapons)
                                         let currentUpgradeBonus = 0;
                                         if (upgradeLevel && upgradeLevel > 0) {
                                             if (selectedItem.subCategory === 'Anneaux' && m.targetStatKey === 'vit') currentUpgradeBonus += 50 * upgradeLevel;
@@ -207,23 +220,41 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
                                             currentUpgradeBonus += 50 * upgradeLevelVit;
                                         }
 
-                                        const { base, bonus } = calculateEnhancedStats(m, displayContext, selectedItem, currentUpgradeBonus);
-                                        const statLabel = m.targetStatKey.substring(0, 3).toUpperCase();
-                                        const colorClass = (getStatStyle(m.targetStatKey).match(/text-\S+/) || ['text-slate-400'])[0];
+                                        let { enhanced, bonus } = calculateEnhancedStats(m, displayContext, selectedItem, currentUpgradeBonus);
+                                        
+                                        // Zephyr Boost Logic (Mounts/Familiars) - Dynamic Display
+                                        let zephyrBonus = 0;
+                                        if (applyZephyrBoost && m.type === ModifierType.FLAT && ['vit', 'spd', 'dmg'].includes(m.targetStatKey)) {
+                                            const boostedValue = Math.ceil(enhanced * 1.5);
+                                            zephyrBonus = boostedValue - enhanced;
+                                            enhanced = boostedValue;
+                                        }
+
+                                        const statConfig = getStatConfig(m.targetStatKey);
+                                        const Icon = statConfig.icon;
                                         const isPercent = [ModifierType.PERCENT_ADD, ModifierType.ALT_PERCENT, ModifierType.FINAL_ADDITIVE_PERCENT].includes(m.type);
-                                        const showBonus = bonus > 0.01;
+                                        
+                                        const totalBonus = bonus + zephyrBonus;
+                                        const showBonus = totalBonus > 0.01;
+                                        const baseVal = enhanced - totalBonus;
 
                                         return (
-                                            <div key={idx} className={`flex items-baseline ${colorClass}`}>
-                                                <span className="opacity-90">{base > 0 && '+'}{base}{isPercent && '%'}</span>
-                                                {showBonus && <span className="text-emerald-400 text-[8px] ml-px">+{Math.ceil(bonus)}</span>}
-                                                <span className="ml-0.5 text-[8px] opacity-60">{statLabel}</span>
+                                            <div key={idx} className="flex items-center gap-1 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-800">
+                                                <Icon size={10} className={statConfig.color} />
+                                                <span className={`text-[10px] font-mono font-bold ${statConfig.color}`}>
+                                                    {baseVal > 0 ? '+' : ''}{baseVal}{isPercent && '%'}
+                                                    {showBonus && (
+                                                        <span className="text-emerald-400 ml-0.5">
+                                                            (+{Math.ceil(totalBonus)})
+                                                        </span>
+                                                    )}
+                                                </span>
                                             </div>
                                         );
                                     }) : (
                                         <span className="text-[9px] text-slate-500 italic">Aucun effet</span>
                                     )}
-                                    {mods.length > 3 && <span className="text-slate-600 text-[9px]">+</span>}
+                                    {mods.length > 3 && <span className="text-slate-600 text-[9px] px-1 bg-slate-900 rounded border border-slate-800">+{mods.length - 3}</span>}
                                 </div>
                             </>
                         )}

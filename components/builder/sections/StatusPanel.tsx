@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Flag, ToggleRight, ToggleLeft, CircleCheck, Circle, Users, Star, Globe, Lock, EyeOff } from 'lucide-react';
-import { PlayerSelection, Entity, EntityType, CalculationResult, ModifierType } from '../../../types';
+import { PlayerSelection, Entity, EntityType, CalculationResult, ModifierType, ActiveSummon } from '../../../types';
 import { evaluateFormula } from '../../../services/engine';
 import { SetBonusesPanel } from '../SetBonusesPanel';
 import { SummonsPanel } from '../SummonsPanel';
@@ -16,9 +16,10 @@ interface StatusPanelProps {
     allItems: Entity[]; 
     context: any;
     result: CalculationResult;
+    activeSummons?: ActiveSummon[]; // Optional prop for overrides (like combined summons)
 }
 
-export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelection, activeEntities, allItems, context, result }) => {
+export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelection, activeEntities, allItems, context, result, activeSummons }) => {
     
     // Use the custom hook for logic
     const { 
@@ -239,7 +240,8 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelectio
             )}
 
             {/* 5. SUMMONS */}
-            <SummonsPanel activeSummons={result.activeSummons} selection={selection} setSelection={setSelection} context={context} />
+            {/* Utilisation de la prop activeSummons si disponible (Merge), sinon fallback sur result.activeSummons */}
+            <SummonsPanel activeSummons={activeSummons || result.activeSummons} selection={selection} setSelection={setSelection} context={context} />
         </div>
     );
 };

@@ -135,7 +135,7 @@ export const ClassMechanicsPanel: React.FC<ClassMechanicsPanelProps> = ({ select
             )}
 
             {/* CLASS SPECIFIC WIDGETS */}
-            {selection.classId === 'arlequins' && (<ArlequinDealer toggles={selection.toggles} onToggle={toggleEffect} />)}
+            {selection.classId === 'arlequins' && (<ArlequinDealer toggles={selection.toggles} onToggle={toggleEffect} context={context} />)}
             {selection.classId === 'pugilistes' && (<PugilistStances toggles={selection.toggles} onToggle={toggleEffect} />)}
             {selection.specializationId === 'spec_zenitude' && (<ZenitudePanel active={selection.toggles['toggle_zenitude'] || false} onToggle={() => toggleEffect('toggle_zenitude')} />)}
             {selection.specializationId === 'spec_lutteur' && (<LutteurPanel active={selection.toggles['toggle_lutteur_unarmed'] || false} onToggle={() => toggleEffect('toggle_lutteur_unarmed')} hasWeapons={selection.weaponSlots.length > 0} />)}
@@ -196,7 +196,7 @@ export const ClassMechanicsPanel: React.FC<ClassMechanicsPanelProps> = ({ select
                     <div className="relative z-10">
                         <div className="flex justify-between items-center mb-4"><h3 className="text-sm font-perrigord text-violet-300 flex items-center tracking-wide"><Ghost size={16} className="mr-2" /> {toFantasyTitle("Récolteur d'âmes")}</h3><div className="text-[10px] uppercase font-bold text-slate-500 bg-slate-950 px-2 py-1 rounded border border-slate-800">{selection.specializationId === 'spec_lien_spirituel' ? 'Lien Spirituel Actif (x4)' : 'Standard (x1)'}</div></div>
                         <div className="flex items-center gap-4">
-                            <div className="flex-1"><label className="block text-xs font-bold text-slate-500 mb-1">Âmes récoltées</label><div className="flex items-center bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 focus-within:border-violet-500 transition-colors"><span className="text-violet-500 mr-2"><Database size={14}/></span><input type="number" min="0" value={selection.soulCount || 0} onChange={(e) => setSelection({...selection, soulCount: parseInt(e.target.value, 10) || 0})} className="bg-transparent text-white font-mono text-sm w-full outline-none" placeholder="0" /></div></div>
+                            <div className="flex-1"><label className="block text-xs font-bold text-slate-500 mb-1">Âmes récoltées</label><div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus-within:border-violet-500 transition-colors"><span className="text-violet-500 mr-2"><Database size={14}/></span><input type="number" min="0" value={selection.soulCount || 0} onChange={(e) => setSelection({...selection, soulCount: parseInt(e.target.value, 10) || 0})} className="bg-transparent text-white font-mono text-sm w-full outline-none" placeholder="0" /></div></div>
                             <div className="flex-1 flex flex-col items-center justify-center p-2 bg-violet-900/10 border border-violet-500/20 rounded-lg">
                                 <span className="text-[10px] text-violet-400 uppercase font-bold mb-1">Bonus Actuel</span>
                                 {(() => {

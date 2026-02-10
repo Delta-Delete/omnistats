@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Download, Upload, ToggleRight, ChevronDown, User, Sword, Activity } from 'lucide-react';
 import { usePlayerEngine } from '../hooks/usePlayerEngine';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -7,8 +7,9 @@ import { useGameData } from '../context/GameDataContext';
 import { useSelectionSanitizer } from '../hooks/useSelectionSanitizer';
 import { usePlayerActions } from '../hooks/usePlayerActions'; 
 import { useToastStore } from '../store/useToastStore';
-import { useBuilderUI } from '../hooks/useBuilderUI'; // IMPORT NEW HOOK
+import { useBuilderUI } from '../hooks/useBuilderUI'; 
 import { validateImportData } from '../utils/sanitizer';
+import { EntityType } from '../types';
 
 // Imported Sub-components
 import { ItemPickerModal } from './builder/ItemPickerModal';
@@ -17,6 +18,7 @@ import { CompanionForgeModal } from './builder/CompanionForgeModal';
 import { CharacterSheet } from './builder/CharacterSheet';
 import { StatusWidget } from './builder/StatusWidget'; 
 import { BuilderHeader } from './builder/BuilderHeader';
+import { StickyStatsHUD } from './builder/StickyStatsHUD'; // NEW IMPORT
 
 // Section Components
 import { IdentityPanel } from './builder/sections/IdentityPanel';
@@ -31,15 +33,42 @@ export default function PlayerBuilder() {
   const { addToast } = useToastStore();
   const { handleResetCharacter, equipItem, removeWeapon, setWeaponUpgrade, createCustomItem } = usePlayerActions();
 
-  // --- UI STATE MANAGEMENT (REFACTORED) ---
+  // --- UI STATE MANAGEMENT ---
   const ui = useBuilderUI();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // --- SCROLL DETECTION FOR HUD ---
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+      const mainElement = document.querySelector('main');
+      if (!mainElement) return;
+
+      const handleScroll = () => {
+          // Detect scroll past 200px
+          setIsScrolled(mainElement.scrollTop > 200);
+      };
+
+      mainElement.addEventListener('scroll', handleScroll);
+      return () => mainElement.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Show HUD if scrolled OR if any major modal is open (to see stats while picking items)
+  const isAnyModalOpen = (ui.itemPickerState?.isOpen || ui.isForgeOpen || ui.isCompanionForgeOpen);
+  const showStickyHud = isScrolled || isAnyModalOpen;
 
   // --- ENGINE ---
   const engine = usePlayerEngine({ selection, stats, entities, customItems });
-  const { allItems, activeEntities, result, contextForDisplay, activeDescriptions, companionResult, companionDescriptions, factions } = engine;
+  const { allItems, activeEntities, result, contextForDisplay, activeDescriptions, companionResult, companionDescriptions, factions, allActiveSummons } = engine;
 
   useSelectionSanitizer(selection, updateSelection, allItems);
+
+  // --- CALCULATE TOTAL GOLD (Moved here to share with HUD) ---
+  const totalGoldCost = useMemo(() => {
+      return activeEntities
+          .filter(e => e.type === EntityType.ITEM)
+          .reduce((acc, item) => acc + (item.goldCost || 0), 0);
+  }, [activeEntities]);
 
   // --- UI HANDLERS ---
   const handleResetClick = () => {
@@ -89,6 +118,9 @@ export default function PlayerBuilder() {
   return (
     <div className="p-4 w-full max-w-[1800px] mx-auto pb-32 lg:pb-20 relative">
       
+      {/* STICKY HUD (Always on top of modals now) */}
+      <StickyStatsHUD result={result} totalGold={totalGoldCost} isVisible={!!showStickyHud} />
+
       {/* HEADER */}
       <BuilderHeader 
           presets={presets}
@@ -198,8 +230,7 @@ export default function PlayerBuilder() {
       {!ui.isStatusPanelOpen && (
           <StatusWidget 
               selection={selection} 
-              activeEntities={activeEntities}
-              activeSummons={result.activeSummons} // Passed result for summons visibility
+              activeEntities={activeEntities} 
               onClick={() => ui.setIsStatusPanelOpen(true)} 
           />
       )}
@@ -230,7 +261,15 @@ export default function PlayerBuilder() {
           </div>
           
           <div className="p-4 overflow-y-auto custom-scrollbar flex-1 pb-4">
-              <StatusPanel selection={selection} setSelection={updateSelection} activeEntities={activeEntities} allItems={allItems} context={contextForDisplay} result={result} />
+              <StatusPanel 
+                  selection={selection} 
+                  setSelection={updateSelection} 
+                  activeEntities={activeEntities} 
+                  allItems={allItems} 
+                  context={contextForDisplay} 
+                  result={result}
+                  activeSummons={allActiveSummons} // PASSAGE DE LA LISTE COMBINÉE
+              />
           </div>
       </div>
 

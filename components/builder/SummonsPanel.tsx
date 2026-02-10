@@ -126,11 +126,9 @@ export const SummonsPanel: React.FC<SummonsPanelProps> = ({ activeSummons, selec
                                         { label: 'Spd', val: summon.stats.spd, color: 'text-amber-400' }, 
                                         { label: 'Dmg', val: summon.stats.dmg, color: 'text-rose-400' }
                                     ].map(s => (
-                                        <div key={s.label} className="flex flex-col items-center">
+                                        <div key={s.label} className="flex flex-col">
                                             <span className="text-[9px] text-slate-500 uppercase">{s.label}</span>
-                                            <div className="flex items-center gap-1">
-                                                <span className={`text-xs font-mono font-bold ${s.color}`}>{s.val}</span>
-                                            </div>
+                                            <span className={`text-xs font-mono font-bold ${s.color}`}>{s.val}</span>
                                         </div>
                                     ))}
                                 </div>

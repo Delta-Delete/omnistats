@@ -16,6 +16,15 @@ export const MAGIQUES: Entity[] = [
             // tag removed
         }
     ],
+    // NOUVELLE CONFIGURATION DATA-DRIVEN
+    summonConfig: {
+        mode: 'SHARED_POOL',
+        sourceName: 'Animiste',
+        unitName: "Meute d'Invocations",
+        countValue: 'invocation_count', // Utilise la stat calculée par les modifiers ci-dessous
+        shareValue: 'invocation_share', // Utilise la stat calculée (incluant les boosts)
+        stats: ['vit', 'spd', 'dmg']
+    },
     modifiers: [
       { id: 'c_ani_hp', type: ModifierType.FLAT, targetStatKey: 'vit', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
       { id: 'c_ani_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
@@ -24,7 +33,7 @@ export const MAGIQUES: Entity[] = [
       // Restriction: 2 Slots
       { id: 'c_ani_cap', type: ModifierType.FLAT, targetStatKey: 'weapon_cap', value: '-1', name: 'Restriction Armement (2 Slots)' },
 
-      // NEW SYSTEM: Invocations
+      // CALCULATION LOGIC (Still needed to compute the count based on level)
       { 
         id: 'c_ani_inv_cnt', type: ModifierType.FLAT, targetStatKey: 'invocation_count', 
         value: 'level >= 40 ? 5 : level >= 30 ? 4 : level >= 20 ? 3 : level >= 10 ? 2 : level >= 5 ? 1 : 0',
@@ -43,6 +52,15 @@ export const MAGIQUES: Entity[] = [
   {
       id: 'spec_necromancer', type: EntityType.SPECIALIZATION, name: 'Nécromant', parentId: 'animistes',
       description: "Invoque un Serviteur Macabre supplémentaire. Ce serviteur possède 20% ^^ +{{(20 * ((effect_booster || 0)/100))}}% ^^ de vos stats (partage indépendant).",
+      // NOUVELLE CONFIGURATION DATA-DRIVEN
+      summonConfig: {
+          mode: 'FIXED_PER_UNIT',
+          sourceName: 'Nécromant',
+          unitName: "Serviteur Macabre",
+          countValue: 'necro_pet_count',
+          shareValue: 'necro_pet_share',
+          stats: ['vit', 'spd', 'dmg']
+      },
       modifiers: [
           { id: 'spec_nec_c', type: ModifierType.FLAT, targetStatKey: 'necro_pet_count', value: '1', name: 'Serviteur Macabre (+1)' },
           // necro_pet_share is boosted by Global Rule

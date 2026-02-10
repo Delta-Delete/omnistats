@@ -234,6 +234,14 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         const mergedDescriptionBlocks: DescriptionBlock[] = [];
         mergedDescriptionBlocks.push({ title: "Alliance", text: descText, tag: "info" });
 
+        // MERGE SUMMONS (CORRECTION HERE)
+        const mergedSummons: any[] = [];
+        selectedEntities.forEach(ent => {
+            if (ent.summons && ent.summons.length > 0) {
+                mergedSummons.push(...ent.summons);
+            }
+        });
+
         selectedEntities.forEach(ent => {
             if (ent.descriptionBlocks && ent.descriptionBlocks.length > 0) {
                 ent.descriptionBlocks.forEach(b => {
@@ -281,6 +289,7 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
             equipmentCost: 2, 
             goldCost: fusionTotalGold,
             modifiers: finalModifiers,
+            summons: mergedSummons.length > 0 ? mergedSummons : undefined, // ADDED
             isCraftable: false,
             isTungsten: isResultTungsten,
             imageUrl: selectedEntities[0].imageUrl,

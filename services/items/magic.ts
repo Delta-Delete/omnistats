@@ -48,6 +48,31 @@ export const MAGIC_ITEMS: Entity[] = [
     ]
   },
 
+  // --- OBJETS ARLEQUINS (DÉMO) ---
+  {
+    id: 'sceptre_joker',
+    type: EntityType.ITEM,
+    name: "Sceptre du Joker",
+    categoryId: 'special',
+    subCategory: 'Magique',
+    rarity: 'epic',
+    description: "Invoque un Pantin qui copie votre tirage de cartes.\nSes stats de base (1000/200/100) sont multipliées par vos ratios de cartes (Cœur=Vit, Pique=Dmg, etc.).",
+    modifiers: [],
+    summons: [
+        {
+            id: 'summ_joker_pantin',
+            name: 'Pantin Joker',
+            countValue: '1',
+            stats: {
+                // Utilisation de (X || 1) pour garantir une valeur par défaut si le ratio n'est pas encore calculé
+                vit: '1000 * (ratio_deck_vit || 1)',
+                spd: '200 * (ratio_deck_spd || 1)',
+                dmg: '100 * (ratio_deck_dmg || 1)'
+            }
+        }
+    ]
+  },
+
   // --- ENCHANTEMENTS (CRITIQUE) ---
   {
     id: 'e_crit_1', type: EntityType.ITEM, name: 'Ench. Critique I (+5%)',
@@ -151,7 +176,7 @@ export const MAGIC_ITEMS: Entity[] = [
     name: 'Sceau de vitalité',
     categoryId: 'seal',
     subCategory: 'Magique',
-    description: "Sceau lié à l'âme. Gagne en puissance tous les 10 niveaux. Cumulatif. (Indestructible)",
+    // description: REMOVED as requested
     hideInRecap: true,
     modifiers: [
         { id: 'sv_l10', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100 * (1 + seal_potency / 100)', condition: 'level >= 10' },

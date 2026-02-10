@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Trash2, Plus, EyeOff, Sliders } from 'lucide-react';
-import { Entity, EntityType, ItemSlot, ItemCategory, StatDefinition, ModifierType, UserConfigType, Rarity } from '../../types';
+import { Trash2, Plus, EyeOff, Sliders, Dog, Save } from 'lucide-react';
+import { Entity, EntityType, ItemSlot, ItemCategory, StatDefinition, ModifierType, UserConfigType, Rarity, CompanionAllowedMode } from '../../types';
 import { ModifierCard } from './ModifierCard';
+import { useToastStore } from '../../store/useToastStore';
 
 interface EntityFormProps {
     entity: Entity;
@@ -25,6 +26,7 @@ export const EntityForm: React.FC<EntityFormProps> = ({
     categories, 
     typeLabels 
 }) => {
+    const { addToast } = useToastStore();
     
     // Helper pour mettre à jour l'entité actuelle
     const updateField = (field: keyof Entity, value: any) => {
@@ -49,8 +51,12 @@ export const EntityForm: React.FC<EntityFormProps> = ({
         updateField('userConfig', { ...entity.userConfig, [key]: val });
     };
 
+    const handleManualSave = () => {
+        addToast("Modifications enregistrées", "success");
+    };
+
     return (
-        <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 pb-20">
             {/* HEADER: NOM & SUPPRESSION */}
             <div className="flex justify-between items-start">
                 <div className="flex-1 mr-4">
@@ -152,7 +158,7 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                         <input value={entity.setId || ''} onChange={e => updateField('setId', e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white" placeholder="set_..."/>
                     </div>
                     
-                    {/* RARITY SELECTOR (NEW) */}
+                    {/* RARITY SELECTOR */}
                     <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Rareté</label>
                         <select 
@@ -167,8 +173,29 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                         </select>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className="flex items-center space-x-2 cursor-pointer">
+                    {/* COMPANION ALLOWED (UPDATED) */}
+                    <div>
+                        <label className="block text-[10px] uppercase font-bold text-purple-400 mb-1 flex items-center">
+                            <Dog size={10} className="mr-1"/> Héritage Comp.
+                        </label>
+                        <select 
+                            value={
+                                entity.companionAllowed === true ? 'full' : 
+                                entity.companionAllowed === false ? 'none' : 
+                                (entity.companionAllowed || 'auto')
+                            } 
+                            onChange={e => updateField('companionAllowed', e.target.value as CompanionAllowedMode)} 
+                            className="w-full bg-slate-900 border border-purple-500/50 rounded px-2 py-1 text-xs text-purple-200 focus:border-purple-500 outline-none"
+                        >
+                            <option value="auto">Automatique (Catégorie)</option>
+                            <option value="none">Interdit (Aucun)</option>
+                            <option value="stats_only">Stats Uniquement (Pas d'effets)</option>
+                            <option value="full">Complet (Tout)</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2 col-span-3 sm:col-span-1">
+                        <label className="flex items-center space-x-2 cursor-pointer pt-4">
                             <input type="checkbox" checked={entity.isCraftable || false} onChange={e => updateField('isCraftable', e.target.checked)} className="accent-emerald-500"/>
                             <span className="text-xs text-emerald-400 font-bold">Craftable ?</span>
                         </label>
@@ -306,6 +333,17 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                         <div className="text-center py-8 text-slate-600 text-xs italic border-2 border-dashed border-slate-800 rounded-lg">Aucun modificateur.</div>
                     )}
                 </div>
+            </div>
+
+            {/* EXPLICIT SAVE BUTTON */}
+            <div className="sticky bottom-4 z-20 flex justify-end pt-4 bg-slate-950/80 backdrop-blur-sm border-t border-slate-800 -mx-6 px-6">
+                <button 
+                    onClick={handleManualSave}
+                    className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95"
+                >
+                    <Save size={18} />
+                    <span>Enregistrer les modifications</span>
+                </button>
             </div>
         </div>
     );

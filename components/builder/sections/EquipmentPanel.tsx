@@ -19,7 +19,7 @@ interface EquipmentPanelProps {
     setIsForgeOpen: (isOpen: boolean) => void;
     setIsCompanionForgeOpen: (isOpen: boolean) => void;
     removeWeapon: (index: number) => void;
-    setWeaponUpgrade: (index: number, level: number) => void;
+    setWeaponUpgrade: (index: number, level: number, type?: 'dmg' | 'vit') => void; // Signature mise à jour
     removePartition: (index: number) => void;
     companionResult: CalculationResult | null;
     companionDescriptions: any[];
@@ -31,16 +31,6 @@ export const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     companionResult, companionDescriptions
 }) => {
     
-    // Helper wrapper for weapon vitality upgrades state update
-    const setWeaponUpgradeVit = (index: number, level: number) => {
-        setSelection(prev => {
-            const newUpgrades = { ...prev.weaponUpgradesVit };
-            if (level === 0) delete newUpgrades[index];
-            else newUpgrades[index] = level;
-            return { ...prev, weaponUpgradesVit: newUpgrades };
-        });
-    };
-
     return (
         <div className="space-y-6 mt-6">
             <ArmorSection 
@@ -61,8 +51,8 @@ export const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 equipFixedItem={equipFixedItem} 
                 setIsForgeOpen={setIsForgeOpen} 
                 removeWeapon={removeWeapon} 
-                setWeaponUpgrade={setWeaponUpgrade}
-                setWeaponUpgradeVit={setWeaponUpgradeVit}
+                setWeaponUpgrade={(idx, lvl) => setWeaponUpgrade(idx, lvl, 'dmg')}
+                setWeaponUpgradeVit={(idx, lvl) => setWeaponUpgrade(idx, lvl, 'vit')}
                 removePartition={removePartition}
             />
 

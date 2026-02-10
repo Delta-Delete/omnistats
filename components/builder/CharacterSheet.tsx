@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users, BarChart3, Radar, Coins } from 'lucide-react';
+import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users, BarChart3, Radar, Coins, Heart } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar as RechartsRadar } from 'recharts';
 import { CalculationResult, StatDefinition, StatResult, StatDetail, EntityType, Entity } from '../../types';
 import { getStatStyle, getTagLabel, getTagColor, AnimatedCounter, CollapsibleDescription, toFantasyTitle } from './utils';
@@ -17,7 +17,7 @@ interface CharacterSheetProps {
     result: CalculationResult;
     stats: StatDefinition[];
     activeDescriptions: DescriptionItem[];
-    activeEntities: Entity[]; // NEW: Required for Gold calculation
+    activeEntities: Entity[];
 }
 
 export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, activeDescriptions, activeEntities }) => {
@@ -47,13 +47,21 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
 
     const visibleStats = useMemo(() => {
         return stats.filter(s => { 
+            // 1. Strict priority to the toggle
             if (showHiddenStats) return true; 
+            
+            // 2. Hide anything marked as Hidden if toggle is off
             if (s.group === 'Hidden') return false; 
+
+            // 3. Exclude Main Stats (handled in the top widgets)
             if (['vit', 'spd', 'dmg', 'absorption'].includes(s.key)) return false; 
             if (['crit_primary', 'crit_secondary'].includes(s.key)) return false; 
+            
+            // 4. Hide zero values to keep UI clean
             const statRes = result.stats[s.key] as StatResult | undefined; 
             const val = statRes?.finalValue || 0; 
             if (Math.abs(val) < 0.01) return false;
+            
             return true; 
         });
     }, [stats, showHiddenStats, result.stats]);
@@ -145,7 +153,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                         <div className="bg-slate-950/50 border border-emerald-500/30 p-3 rounded-lg relative overflow-hidden group">
                             <div className="flex justify-between items-start mb-1">
                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Vitalité</span>
-                                <Activity size={14} className="text-emerald-500/40" />
+                                <Heart size={14} className="text-emerald-500/40" />
                             </div>
                             <div className="text-2xl font-bold text-white tracking-tight">
                                 <AnimatedCounter value={result.stats['vit']?.finalValue || 0} />
@@ -349,11 +357,11 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
                                     </div>
                                     <div className="flex items-center space-x-3">
                                         <span className={`text-lg font-bold tracking-tight ${isHidden ? 'text-indigo-400/80' : 'text-white'}`}>
-                                            <AnimatedCounter value={typedRes.finalValue} />
+                                            <AnimatedCounter value={typedRes.finalValue} precision={2} />
                                         </span>
                                         <div className="relative">
                                             <Info size={14} className="text-slate-700 hover:text-slate-500 cursor-help transition-colors" />
-                                            <div className="absolute right-0 top-5 w-80 p-3 bg-slate-950 border border-slate-700 rounded-lg shadow-xl z-50 hidden group-hover:block max-h-[80vh] overflow-y-auto custom-scrollbar">
+                                            <div className="absolute right-0 top-5 w-80 p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 hidden group-hover:block max-h-[80vh] overflow-y-auto custom-scrollbar">
                                                 <h4 className="text-xs font-bold text-white border-b border-slate-800 pb-1 mb-2">Détail: {stat.label}</h4>
                                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] mb-2">
                                                     <div className="text-slate-500 font-bold" title="Statistique de Base + Bonus de Race">Base (Inné/Race):</div>

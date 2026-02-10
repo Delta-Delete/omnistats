@@ -4,7 +4,8 @@ import { Lock, Trash2 } from 'lucide-react';
 import { Entity, ItemConfigValues } from '../../../types';
 import { CollapsibleCard } from '../../ui/Card';
 import { ItemConfigControl } from './ItemConfigControl';
-import { toFantasyTitle, calculateEnhancedStats } from '../utils';
+import { toFantasyTitle, calculateEnhancedStats, getStatConfig } from '../utils';
+import { checkCondition } from '../../../services/engine';
 
 interface InventoryBagProps {
     id: string;
@@ -47,6 +48,29 @@ export const InventoryBag: React.FC<InventoryBagProps> = ({
             : `${itemBgColor} border-slate-700/50 hover:border-slate-600`
         } ${hasConfig ? 'w-full md:w-[48%]' : ''}`; // Config items take more width
 
+        // CALCULATE CONSOLIDATED STATS FOR DISPLAY
+        // This solves the issue where items with multiple conditional modifiers (like Seals) 
+        // would only show the first few, or show confusing values.
+        // Now sums up ALL active modifiers for the current context.
+        const consolidatedStats = [];
+        if (!hasConfig && item?.modifiers) {
+            const statsMap = new Map<string, number>();
+            item.modifiers.forEach(m => {
+                // Check if the modifier is active in current context
+                if (m.condition && !checkCondition(m.condition, context)) return;
+                
+                const { enhanced } = calculateEnhancedStats(m, context, item);
+                if (enhanced !== 0) {
+                    statsMap.set(m.targetStatKey, (statsMap.get(m.targetStatKey) || 0) + enhanced);
+                }
+            });
+            
+            // Convert map to array for display
+            statsMap.forEach((val, key) => {
+                consolidatedStats.push({ key, val });
+            });
+        }
+
         return (
             <div key={`${itemId}-${index}`} className={containerClass}>
                 <div className="flex justify-between items-start mb-2">
@@ -55,25 +79,29 @@ export const InventoryBag: React.FC<InventoryBagProps> = ({
                             {item?.name || 'Objet Inconnu'}
                         </span>
                         
-                        {/* Simple Stats Preview (Only if NOT configurable) */}
-                        {!hasConfig && item?.modifiers && item.modifiers.length > 0 && (
+                        {/* Consolidated Stats Preview (Real-time Value) */}
+                        {!hasConfig && consolidatedStats.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
-                                {item.modifiers.slice(0, 2).map((m, midx) => {
-                                    const { enhanced } = calculateEnhancedStats(m, context, item);
-                                    const label = m.targetStatKey.substring(0, 3).toUpperCase();
+                                {consolidatedStats.map((stat, sIdx) => {
+                                    const label = stat.key.substring(0, 3).toUpperCase();
                                     
-                                    let color = 'text-slate-400';
-                                    if(m.targetStatKey === 'vit') color = 'text-emerald-400';
-                                    if(m.targetStatKey === 'spd') color = 'text-amber-400';
-                                    if(m.targetStatKey === 'dmg') color = 'text-rose-400';
+                                    // Dynamic Color Mapping using shared utility config
+                                    const conf = getStatConfig(stat.key);
+                                    // Strip bg classes, keep text color
+                                    const colorClass = (conf.color.match(/text-\S+/) || ['text-slate-400'])[0];
                                     
                                     return (
-                                        <span key={midx} className={`text-[9px] font-mono ${color}`}>
-                                            {enhanced > 0 ? '+' : ''}{enhanced} {label}
+                                        <span key={sIdx} className={`text-[9px] font-mono font-bold ${colorClass}`}>
+                                            {stat.val > 0 ? '+' : ''}{stat.val} {label}
                                         </span>
                                     );
                                 })}
                             </div>
+                        )}
+                        
+                        {/* Fallback if no active stats found (e.g. condition not met) */}
+                        {!hasConfig && consolidatedStats.length === 0 && item?.modifiers && item.modifiers.length > 0 && (
+                            <span className="text-[9px] text-slate-500 italic mt-1">Inactif (Condition non remplie)</span>
                         )}
                     </div>
                     

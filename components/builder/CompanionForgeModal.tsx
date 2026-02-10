@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, X, Dog, Zap, Heart, Activity, Sword, MessageSquare, Tag } from 'lucide-react';
+import { Save, X, Dog, Zap, Heart, Activity, Sword, MessageSquare, Tag, PawPrint } from 'lucide-react';
 import { Entity, EntityType, ModifierType, ItemCategory } from '../../types';
 
 interface CompanionForgeModalProps {
@@ -80,7 +80,7 @@ export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ catego
                 <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
                     
                     {/* Name & Type */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <div>
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Nom de la créature</label>
                             <input 
@@ -94,36 +94,46 @@ export const CompanionForgeModal: React.FC<CompanionForgeModalProps> = ({ catego
                         
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Catégorie</label>
-                                <div className="flex bg-slate-800 rounded border border-slate-700 overflow-hidden">
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-2">Catégorie</label>
+                                <div className="flex gap-2">
                                     <button 
                                         onClick={() => setType('mount')} 
-                                        className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'mount' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                        className={`flex-1 py-2.5 px-2 rounded-lg border transition-all flex flex-col items-center justify-center group ${
+                                            type === 'mount' 
+                                            ? 'bg-amber-900/30 border-amber-500 text-amber-300 shadow-sm' 
+                                            : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500 hover:bg-slate-700'
+                                        }`}
                                     >
-                                        <Dog size={14} className="mr-2" /> Monture
+                                        <PawPrint size={18} className={`mb-1 ${type === 'mount' ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                                        <span className="text-[10px] font-bold uppercase">Monture</span>
                                     </button>
-                                    <div className="w-px bg-slate-700"></div>
+                                    
                                     <button 
                                         onClick={() => setType('familiar')} 
-                                        className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center ${type === 'familiar' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                        className={`flex-1 py-2.5 px-2 rounded-lg border transition-all flex flex-col items-center justify-center group ${
+                                            type === 'familiar' 
+                                            ? 'bg-indigo-900/30 border-indigo-500 text-indigo-300 shadow-sm' 
+                                            : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500 hover:bg-slate-700'
+                                        }`}
                                     >
-                                        <Zap size={14} className="mr-2" /> Familier
+                                        <Zap size={18} className={`mb-1 ${type === 'familiar' ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                                        <span className="text-[10px] font-bold uppercase">Familier</span>
                                     </button>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Type (Espèce)</label>
-                                <div className="relative">
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-2">Type (Espèce)</label>
+                                <div className="relative h-full">
                                     <select 
                                         value={subCat}
                                         onChange={(e) => setSubCat(e.target.value)}
-                                        className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white outline-none focus:border-indigo-500 appearance-none pl-8"
+                                        className="w-full h-[58px] bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white outline-none focus:border-indigo-500 appearance-none pl-9 font-bold"
                                     >
                                         {availableSubCats.map(sc => (
                                             <option key={sc} value={sc}>{sc}</option>
                                         ))}
                                     </select>
-                                    <Tag size={14} className="absolute left-2.5 top-2.5 text-slate-500 pointer-events-none" />
+                                    <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                                 </div>
                             </div>
                         </div>

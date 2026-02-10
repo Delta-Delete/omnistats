@@ -1,13 +1,14 @@
 
-import { useMemo } from 'react';
-import { Entity, EntityType, PlayerSelection, StatDefinition, CalculationResult, StatResult, ModifierType } from '../types';
+import { useMemo, useDeferredValue } from 'react';
+import { Entity, EntityType, PlayerSelection, StatDefinition, CalculationResult, StatResult, ActiveSummon, ModifierType } from '../types';
 import { calculateStats, evaluateFormula, checkCondition } from '../services/engine';
+import { processWeaponUpgrades, processForceNaturelle, processDynamicSummons, processMountBoost } from '../services/rules';
 
 interface UsePlayerEngineProps {
     selection: PlayerSelection;
     stats: StatDefinition[];
-    entities: Entity[]; // System entities
-    customItems: Entity[]; // Forge items
+    entities: Entity[];
+    customItems: Entity[];
 }
 
 interface UsePlayerEngineResult {
@@ -21,10 +22,14 @@ interface UsePlayerEngineResult {
     factions: Entity[];
     eliteCompetence?: Entity;
     racialCompetence?: Entity;
+    allActiveSummons: ActiveSummon[]; // NEW: Combined list
 }
 
 export const usePlayerEngine = ({ selection, stats, entities, customItems }: UsePlayerEngineProps): UsePlayerEngineResult => {
     
+    // OPTIMIZATION: Defer the calculation triggered by selection changes (sliders, inputs)
+    const deferredSelection = useDeferredValue(selection);
+
     // 1. COMBINE ITEMS
     const allItems: Entity[] = useMemo(() => { 
         return [...entities.filter(e => e.type === EntityType.ITEM), ...customItems]; 
@@ -36,7 +41,7 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
     const racialCompetence = entities.find(e => e.type === EntityType.RACIAL_COMPETENCE && (e.parentId === selection.raceId || e.parentId === selection.subRaceId));
     const coreRules = entities.filter(e => e.type === EntityType.GLOBAL_RULE);
 
-    // 3. RESOLVE ACTIVE ENTITIES
+    // 3. RESOLVE ACTIVE ENTITIES (Based on DEFERRED selection to avoid lag)
     const activeEntities: Entity[] = useMemo(() => {
         const getItem = (id: string | undefined) => id ? allItems.find(i => i.id === id) : undefined;
         
@@ -50,57 +55,50 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
    
         // Core & Selection
         coreRules.forEach(addEntity);
-        addEntity(entities.find(e => e.id === selection.raceId));
-        addEntity(entities.find(e => e.id === selection.subRaceId));
-        addEntity(entities.find(e => e.id === selection.classId));
-        addEntity(entities.find(e => e.id === selection.specializationId));
-        addEntity(entities.find(e => e.id === selection.professionId));
-        addEntity(entities.find(e => e.id === selection.careerId));
-        addEntity(entities.find(e => e.id === selection.factionId)); // Add Identity Faction
+        addEntity(entities.find(e => e.id === deferredSelection.raceId));
+        addEntity(entities.find(e => e.id === deferredSelection.subRaceId));
+        addEntity(entities.find(e => e.id === deferredSelection.classId));
+        addEntity(entities.find(e => e.id === deferredSelection.specializationId));
+        addEntity(entities.find(e => e.id === deferredSelection.professionId));
+        addEntity(entities.find(e => e.id === deferredSelection.careerId));
+        addEntity(entities.find(e => e.id === deferredSelection.factionId));
         
-        // Add Sub-Professions (From map keys)
-        if (selection.subProfessions) {
-            Object.keys(selection.subProfessions).forEach(subId => {
+        if (deferredSelection.subProfessions) {
+            Object.keys(deferredSelection.subProfessions).forEach(subId => {
                 addEntity(entities.find(e => e.id === subId));
             });
         }
 
-        (selection.guildIds || []).forEach(id => {
+        (deferredSelection.guildIds || []).forEach(id => {
             const guildEntity = entities.find(e => e.id === id);
             addEntity(guildEntity);
             
-            // PRIMARY GUILD RANK
-            if (guildEntity && guildEntity.guildRanks && selection.guildRanks && selection.guildRanks[id]) {
-                const rankId = selection.guildRanks[id];
+            if (guildEntity && guildEntity.guildRanks && deferredSelection.guildRanks && deferredSelection.guildRanks[id]) {
+                const rankId = deferredSelection.guildRanks[id];
                 const rankData = guildEntity.guildRanks.find(r => r.id === rankId);
                 if (rankData && rankData.modifiers && rankData.modifiers.length > 0) {
-                    const rankEntity: Entity = {
+                    addEntity({
                         id: `virtual_rank_${rankId}`,
-                        type: EntityType.GUILD, // CHANGED TO GUILD (Was GLOBAL_RULE implicitly or explicitly)
+                        type: EntityType.GLOBAL_RULE, 
                         name: `Rang : ${rankData.name}`,
                         modifiers: rankData.modifiers
-                    };
-                    addEntity(rankEntity);
+                    });
                 }
             }
 
-            // SECONDARY GUILD RANK
-            if (guildEntity && guildEntity.secondaryGuildRanks && selection.guildSecondaryRanks && selection.guildSecondaryRanks[id]) {
-                const rankId = selection.guildSecondaryRanks[id];
+            if (guildEntity && guildEntity.secondaryGuildRanks && deferredSelection.guildSecondaryRanks && deferredSelection.guildSecondaryRanks[id]) {
+                const rankId = deferredSelection.guildSecondaryRanks[id];
                 const rankData = guildEntity.secondaryGuildRanks.find(r => r.id === rankId);
                 
-                // Add modifiers from the rank itself (e.g. Ennemi des deux couronnes maluses)
                 if (rankData && rankData.modifiers && rankData.modifiers.length > 0) {
-                    const rankEntity: Entity = {
+                    addEntity({
                         id: `virtual_rank_sec_${rankId}`,
-                        type: EntityType.GUILD, // CHANGED TO GUILD
+                        type: EntityType.GLOBAL_RULE, 
                         name: `Réputation : ${rankData.name}`,
                         modifiers: rankData.modifiers
-                    };
-                    addEntity(rankEntity);
+                    });
                 }
                 
-                // GEMME SPELUNCIENNE LOGIC (Restored)
                 if (id === 'guild_crocs_spelunca') {
                     const gemMap: Record<string, string> = {
                         'croc_rep_sympathisant': 'item_gemme_spel_std',
@@ -117,71 +115,71 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
             }
         });
 
-        // MANUAL GUILD BONUSES (Virtual Entity)
-        if (selection.guildIds && selection.guildIds.length > 0 && selection.guildManualBonuses) {
-            const bonuses = selection.guildManualBonuses;
+        if (deferredSelection.guildIds && deferredSelection.guildIds.length > 0 && deferredSelection.guildManualBonuses) {
+            const bonuses = deferredSelection.guildManualBonuses;
             const manualModifiers = [];
             
-            if (bonuses.vit) manualModifiers.push({ id: 'guild_man_vit', type: ModifierType.FLAT, targetStatKey: 'vit', value: bonuses.vit.toString() });
-            if (bonuses.spd) manualModifiers.push({ id: 'guild_man_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: bonuses.spd.toString() });
-            if (bonuses.dmg) manualModifiers.push({ id: 'guild_man_dmg', type: ModifierType.FLAT, targetStatKey: 'dmg', value: bonuses.dmg.toString() });
+            if (bonuses.vit) manualModifiers.push({ id: 'guild_man_vit', type: 'FLAT', targetStatKey: 'vit', value: bonuses.vit.toString() });
+            if (bonuses.spd) manualModifiers.push({ id: 'guild_man_spd', type: 'FLAT', targetStatKey: 'spd', value: bonuses.spd.toString() });
+            if (bonuses.dmg) manualModifiers.push({ id: 'guild_man_dmg', type: 'FLAT', targetStatKey: 'dmg', value: bonuses.dmg.toString() });
             
-            // Only Corrompus get the Absorption bonus
-            if (selection.classId === 'corrompu' && bonuses.absorption) {
-                manualModifiers.push({ id: 'guild_man_abs', type: ModifierType.FLAT, targetStatKey: 'absorption', value: bonuses.absorption.toString() });
+            if (deferredSelection.classId === 'corrompu' && bonuses.absorption) {
+                manualModifiers.push({ id: 'guild_man_abs', type: 'FLAT', targetStatKey: 'absorption', value: bonuses.absorption.toString() });
             }
 
             if (manualModifiers.length > 0) {
                 addEntity({
                     id: 'guild_manual_bonus_virtual',
-                    type: EntityType.GUILD, // CHANGED TO GUILD
+                    type: EntityType.GLOBAL_RULE,
                     name: 'Bonus de Guilde (Manuel)',
-                    modifiers: manualModifiers
+                    modifiers: manualModifiers as any[]
                 });
             }
         }
    
-        if (selection.eliteCompetenceActive && eliteCompetence) addEntity(eliteCompetence);
-        if (selection.racialCompetenceActive && racialCompetence) addEntity(racialCompetence);
+        if (deferredSelection.eliteCompetenceActive && eliteCompetence) addEntity(eliteCompetence);
+        if (deferredSelection.racialCompetenceActive && racialCompetence) addEntity(racialCompetence);
    
-        // Item Instances
         const itemInstances = [ 
-            ...Object.values(selection.equippedItems).map(getItem), 
-            ...selection.weaponSlots.map(getItem), 
-            ...selection.partitionSlots.map(getItem), 
-            ...(selection.bonusItems || []).map(getItem), 
-            ...(selection.sealItems || []).map(getItem), 
-            ...(selection.specialItems || []).map(getItem) 
+            ...Object.values(deferredSelection.equippedItems).map(getItem), 
+            ...deferredSelection.weaponSlots.map(getItem), 
+            ...deferredSelection.partitionSlots.map(getItem), 
+            ...(deferredSelection.bonusItems || []).map(getItem), 
+            ...(deferredSelection.sealItems || []).map(getItem), 
+            ...(deferredSelection.specialItems || []).map(getItem) 
         ].filter(Boolean) as Entity[];
         
-        // Factions/Sets Triggered by Items
         itemInstances.forEach(item => { 
-            // Legacy Faction Trigger
             if (item.factionId) {
                 const faction = entities.find(e => e.id === item.factionId && (e.type === EntityType.FACTION));
                 addEntity(faction);
             }
-            // Item Set Trigger
             if (item.setId) {
                 const setEntity = entities.find(e => e.id === item.setId && e.type === EntityType.ITEM_SET);
                 addEntity(setEntity);
             }
         });
    
-        // Combine Unique System Entities + Item Instances (Instances allow duplicates like 2 weapons)
         return [...Array.from(uniqueEntityMap.values()), ...itemInstances];
    
-     }, [selection, entities, coreRules, allItems, eliteCompetence, racialCompetence]);
+     }, [deferredSelection, entities, coreRules, allItems, eliteCompetence, racialCompetence, selection.classId, selection.raceId]); 
 
-    // 4. MAIN CALCULATION
+    // 4. MAIN CALCULATION (HEAVY - DEFERRED)
     const result: CalculationResult = useMemo(() => { 
-        const calcContext = { ...selection, soulCount: selection.soulCount || 0 };
-        return calculateStats(stats, activeEntities, calcContext); 
-    }, [stats, activeEntities, selection]);
+        const calcContext = { ...deferredSelection, soulCount: deferredSelection.soulCount || 0 };
+        return calculateStats(
+            stats, 
+            activeEntities, 
+            calcContext, 
+            // INJECTED HERE: processMountBoost before Pass A logic
+            [processWeaponUpgrades, processForceNaturelle, processMountBoost],
+            [processDynamicSummons] 
+        ); 
+    }, [stats, activeEntities, deferredSelection]);
 
-    // 5. DISPLAY CONTEXT (For UI conditionals & Visual Utils)
+    // 5. DISPLAY CONTEXT
     const contextForDisplay: any = useMemo(() => ({
-        level: selection.level,
+        level: selection.level, 
         soul_count: selection.soulCount || 0,
         raceId: selection.raceId,
         subRaceId: selection.subRaceId,
@@ -191,25 +189,29 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
         careerId: selection.careerId,
         factionId: selection.factionId,
         guildIds: selection.guildIds,
-        // CRITICAL FIX: Exposed equippedItems for visual utils (Hegemony Check in utils.tsx)
         equippedItems: selection.equippedItems,
-        // CRITICAL FIX: Exposed toggles object for safe access in formulas (e.g., toggles.my_toggle)
+        // PASSING INVENTORY LISTS FOR UI LOGIC (Fix for Zephyr Pendant display)
+        specialItems: selection.specialItems,
+        bonusItems: selection.bonusItems,
+        sealItems: selection.sealItems,
+        
         toggles: selection.toggles,
-        ...(selection.toggles || {}), // Spread for direct access if needed
+        ...(selection.toggles || {}), 
         ...(selection.sliderValues || {}), 
         ...Object.fromEntries(Object.entries(result.stats).map(([k, v]) => [k, (v as StatResult).finalValue]))
     }), [selection, result]);
 
     // 6. DESCRIPTION PARSING
     const activeDescriptions = useMemo(() => {
-        const descContext: any = { 
-            level: selection.level, 
-            soul_count: selection.soulCount || 0,
-            toggles: selection.toggles,
-            context: { toggles: selection.toggles }, // Legacy support
-            ...(selection.sliderValues || {}), 
+         const descContext: any = { 
+            level: deferredSelection.level, 
+            soul_count: deferredSelection.soulCount || 0,
+            toggles: deferredSelection.toggles,
+            context: { toggles: deferredSelection.toggles }, 
+            ...(deferredSelection.sliderValues || {}), 
             ...Object.fromEntries(Object.entries(result.stats).map(([k, v]) => [k, (v as StatResult).finalValue])) 
         };
+
         const processText = (text: string) => {
             return text.replace(/\{\{(.*?)\}\}/g, (_, content) => { 
                 const trimmed = content.trim(); 
@@ -229,38 +231,19 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
         return activeEntities
           .filter(e => (e.descriptionBlocks?.length || (e.description && e.description.trim() !== '')) || e.modifiers?.some(m => m.displayTag) || e.effectTag)
           .filter(e => {
-              if (e.hideInRecap) return false; // NEW: Allow hiding specific entities from recap
-              
-              // Races/Factions are typically static summaries, ignored here
+              if (e.hideInRecap) return false;
               if (e.type === EntityType.RACE || e.type === EntityType.FACTION) return false;
-              
-              // --- AGGRESSIVE FILTERING FOR CLEANER RECAP ---
-              
-              // 1. Remove Item Sets (Handled in dedicated Set Panel)
               if (e.type === EntityType.ITEM_SET) return false;
-
-              // 2. Remove Items from "Panoplie du Capitaine" (Handled in Set Panel)
               if (e.type === EntityType.ITEM && e.setId === 'set_capitaine') return false;
-
-              // 3. Remove Armor Options (Just stats, no lore)
               if (e.categoryId === 'armor_option') return false;
-
-              // 4. Remove ALL Seals (Sceaux)
               if (e.categoryId === 'seal') return false;
-
-              // 5. REMOVED: Filter for Fusions is gone. They are now allowed.
-
-              // 6. Remove Custom Companions if description is default
               if (e.id.startsWith('custom_comp_')) {
                    const defaultDesc = "Un compagnon fidèle.";
                    if (!e.description || e.description.trim() === defaultDesc) return false;
               }
-
-              // GLOBAL_RULE: Only show if they have explicit description blocks (Lore Rules)
               if (e.type === EntityType.GLOBAL_RULE) {
                   return e.descriptionBlocks && e.descriptionBlocks.length > 0;
               }
-              
               return true;
           })
           .map((e, idx) => {
@@ -285,34 +268,157 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
               if (nameCounts[e.name] > 1) { currentCounts[e.name] = (currentCounts[e.name] || 0) + 1; displayName = `${e.name} (${currentCounts[e.name]})`; }
               return { id: `${e.id}_${idx}`, name: displayName, textBlocks, specialEffects, type: e.type };
           });
-    }, [activeEntities, result.modifierResults, result.stats, selection.level, selection.soulCount, selection.sliderValues, selection.toggles, stats]);
+    }, [activeEntities, result, deferredSelection, stats]);
 
     // 7. COMPANION LOGIC
+    
     const companionEntities = useMemo(() => {
-        if (selection.choiceSlotType !== 'companion') return [];
-        return activeEntities.filter(e => {
-            if (e.companionAllowed === true) return true;
-            if (e.companionAllowed === false) return false;
-            if (e.type === EntityType.RACE) return true;
-            if (e.type === EntityType.CLASS) return true;
-            if (e.type === EntityType.SPECIALIZATION) return false;
-            if (e.type === EntityType.ITEM) { const cat = e.categoryId || ''; const allowedCategories = ['weapon', 'armor_head', 'armor_chest', 'armor_legs', 'seal', 'artifact']; if (cat === 'enchantment') return false; if (e.factionId) { const isWeaponOrArmor = ['weapon', 'armor_head', 'armor_chest', 'armor_legs'].includes(cat); if (!isWeaponOrArmor) return false; } if (allowedCategories.includes(cat)) return true; }
-            return false;
-        });
-    }, [activeEntities, selection]);
+        if (deferredSelection.choiceSlotType !== 'companion') return [];
+
+        const allowedTypes = [EntityType.RACE, EntityType.CLASS, EntityType.GLOBAL_RULE, EntityType.ITEM];
+        
+        const allowedItemCategories = [
+            'weapon', 'armor_head', 'armor_chest', 'armor_legs', 'shield',
+            'seal', 'artifact', 'rebreather'
+        ];
+
+        return activeEntities.map(e => {
+            // Check basic type allowance first
+            if (!allowedTypes.includes(e.type)) return null;
+
+            // DETERMINE MODE
+            // 1. Check explicit override on entity
+            let mode = e.companionAllowed;
+
+            // 2. Backward compatibility (true -> full, false -> none)
+            if (mode === true) mode = 'full';
+            if (mode === false) mode = 'none';
+
+            // 3. 'auto' or undefined: Use category logic
+            if (!mode || mode === 'auto') {
+                if (e.type === EntityType.ITEM) {
+                    if (e.categoryId === 'enchantment') mode = 'none';
+                    else if (allowedItemCategories.includes(e.categoryId || '')) mode = 'full';
+                    else if (e.slotId === 'weapon_any') mode = 'full';
+                    else mode = 'none';
+                } else {
+                    mode = 'full'; // Races, Classes, Rules are auto-allowed by default logic
+                }
+            }
+
+            // APPLY MODE
+            if (mode === 'none') return null;
+
+            if (mode === 'stats_only') {
+                // Return a Sanitized Virtual Copy
+                const statsToKeep = ['vit', 'spd', 'dmg', 'res', 'aura', 'crit_primary', 'crit_secondary'];
+                return {
+                    ...e,
+                    id: `${e.id}_comp_stats_only`,
+                    modifiers: (e.modifiers || []).filter(m => 
+                        statsToKeep.includes(m.targetStatKey) && 
+                        (m.type === ModifierType.FLAT || m.type === ModifierType.PERCENT_ADD) &&
+                        !m.toggleId && !m.toggleGroup // Remove toggles
+                    ),
+                    summons: [], // No summons
+                    descriptionBlocks: [], // No text effects
+                    description: `(Stats Uniquement) ${e.name}`
+                };
+            }
+
+            // Full Mode
+            return e;
+
+        }).filter(Boolean) as Entity[];
+
+    }, [activeEntities, deferredSelection.choiceSlotType]);
   
     const companionResult = useMemo(() => { 
-        if (selection.choiceSlotType !== 'companion') return null; 
-        return calculateStats(stats, companionEntities, selection); 
-    }, [stats, companionEntities, selection]);
+        if (deferredSelection.choiceSlotType !== 'companion') return null; 
+        
+        const companionContext = {
+            ...deferredSelection,
+            specializationId: undefined, 
+            professionId: undefined,     
+            careerId: undefined,         
+            guildIds: [],                
+            subProfessions: {},          
+            toggles: deferredSelection.companionToggles || {},
+            // Inject Player Final Stats into companion context for reference (e.g. "10% of Master's HP")
+            ...Object.fromEntries(Object.entries(result.stats).map(([k, v]) => [`player_${k}`, (v as StatResult).finalValue]))
+        };
+
+        return calculateStats(
+            stats, 
+            companionEntities, 
+            companionContext,
+            // ADDED PROCESSORS to ensure Full Calculation (Weapon Upgrades, Force Naturelle, Mount Boost)
+            [processWeaponUpgrades, processForceNaturelle, processMountBoost]
+        ); 
+    }, [stats, companionEntities, deferredSelection, result.stats]);
     
     const companionDescriptions = useMemo(() => {
-        if (selection.choiceSlotType !== 'companion') return [];
-        const companionScale = ((result.stats['companion_scale'] as StatResult | undefined)?.finalValue) ?? 50; 
-        const companionRatio = Number(companionScale) / 100;
-        const compContext: any = { level: selection.level, soul_count: selection.soulCount || 0, ...Object.fromEntries(Object.entries(companionResult?.stats || {}).map(([k, v]) => [k, (v as StatResult).finalValue])) };
-        return companionEntities.filter(e => (e.descriptionBlocks?.length || (e.description && e.description.trim() !== ''))).filter(e => e.type !== EntityType.GLOBAL_RULE && e.type !== EntityType.RACE).map((e, idx) => { let rawDesc = ''; if (e.descriptionBlocks && e.descriptionBlocks.length > 0) rawDesc = e.descriptionBlocks[0].text; else if (e.description) rawDesc = e.description; let desc = rawDesc.replace(/\{\{(.*?)\}\}/g, (_, content) => { const trimmed = content.trim(); let val = companionResult?.modifierResults[trimmed]; if (val === undefined) { try { val = evaluateFormula(trimmed, compContext); } catch (e) { val = 0; } } if (typeof val === 'number') { const num = val * companionRatio; return Math.ceil(num).toString(); } return '0'; }); return { id: `${e.id}_comp_${idx}`, name: e.name, description: desc, type: e.type }; });
-    }, [companionEntities, companionResult, selection.choiceSlotType, result.stats, selection.level, selection.soulCount]);
+         if (deferredSelection.choiceSlotType !== 'companion') return [];
+         
+         const companionScale = ((result.stats['companion_scale'] as StatResult | undefined)?.finalValue) ?? 50; 
+         const companionRatio = Number(companionScale) / 100;
+         
+         const compContext: any = { 
+             level: deferredSelection.level, 
+             soul_count: deferredSelection.soulCount || 0, 
+             ...Object.fromEntries(Object.entries(companionResult?.stats || {}).map(([k, v]) => [k, (v as StatResult).finalValue])) 
+         };
+
+         return companionEntities
+            .filter(e => (e.descriptionBlocks?.length || (e.description && e.description.trim() !== '')))
+            .filter(e => e.type !== EntityType.GLOBAL_RULE && e.type !== EntityType.RACE)
+            .map((e, idx) => { 
+                let rawDesc = ''; 
+                if (e.descriptionBlocks && e.descriptionBlocks.length > 0) rawDesc = e.descriptionBlocks[0].text; 
+                else if (e.description) rawDesc = e.description; 
+                
+                let desc = rawDesc.replace(/\{\{(.*?)\}\}/g, (_, content) => { 
+                    const trimmed = content.trim(); 
+                    let val = companionResult?.modifierResults[trimmed]; 
+                    if (val === undefined) { 
+                        try { val = evaluateFormula(trimmed, compContext); } catch (e) { val = 0; } 
+                    } 
+                    if (typeof val === 'number') { 
+                        const num = val * companionRatio; 
+                        return Math.ceil(num).toString(); 
+                    } 
+                    return '0'; 
+                }); 
+                
+                return { id: `${e.id}_comp_${idx}`, name: e.name, description: desc, type: e.type }; 
+            });
+    }, [companionEntities, companionResult, deferredSelection.choiceSlotType, result.stats, deferredSelection.level]);
+
+    // 8. COMBINED SUMMONS (Player + Scaled Companion Summons)
+    const allActiveSummons = useMemo(() => {
+        let list = [...result.activeSummons];
+
+        if (companionResult && companionResult.activeSummons.length > 0) {
+            const companionScale = ((result.stats['companion_scale'] as StatResult | undefined)?.finalValue) ?? 50;
+            const ratio = companionScale / 100;
+
+            const scaledCompanionSummons = companionResult.activeSummons.map(summon => ({
+                ...summon,
+                // On renomme pour que l'utilisateur sache d'où ça vient
+                sourceName: `${summon.sourceName} (Compagnon)`,
+                // On applique le ratio d'échelle aux stats de l'invocation
+                stats: {
+                    vit: Math.ceil(summon.stats.vit * ratio),
+                    spd: Math.ceil(summon.stats.spd * ratio),
+                    dmg: Math.ceil(summon.stats.dmg * ratio),
+                }
+            }));
+
+            list = [...list, ...scaledCompanionSummons];
+        }
+
+        return list;
+    }, [result.activeSummons, companionResult, result.stats]);
 
     return {
         allItems,
@@ -324,6 +430,7 @@ export const usePlayerEngine = ({ selection, stats, entities, customItems }: Use
         companionDescriptions,
         factions,
         eliteCompetence,
-        racialCompetence
+        racialCompetence,
+        allActiveSummons // Expose combined list
     };
 };

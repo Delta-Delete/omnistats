@@ -1,12 +1,9 @@
 
 import { Entity, EntityType, ModifierType } from '../../../types';
-import { SPECIALES } from '../../classes/speciales';
+import { SPECIAL_CLASS_IDS } from '../../constants';
 
-// Génération dynamique de la liste des IDs pour la condition de l'armure Bushi
-const SPECIAL_CLASS_IDS = SPECIALES
-    .filter(e => e.type === EntityType.CLASS)
-    .map(e => `'${e.id}'`)
-    .join(', ');
+// Génération de la chaîne pour la condition JS : 'arlequins', 'conjurateurs', ...
+const SPECIAL_CLASS_IDS_STRING = SPECIAL_CLASS_IDS.map(id => `'${id}'`).join(', ');
 
 export const STANDARD_CHESTS: Entity[] = [
   {
@@ -52,7 +49,8 @@ export const STANDARD_CHESTS: Entity[] = [
             type: ModifierType.FLAT, 
             targetStatKey: 'special_mastery', 
             value: '25', 
-            condition: `[${SPECIAL_CLASS_IDS}].includes(classId)`,
+            // Utilisation de la constante importée depuis constants.ts pour casser la boucle
+            condition: `[${SPECIAL_CLASS_IDS_STRING}].includes(classId)`,
             name: 'Bonus Maîtrise Bushi'
         },
     ]

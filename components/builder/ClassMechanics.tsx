@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Flame, Droplet, Skull, Heart, Wind, Activity, Wand2, Ban, Feather, Check, Hammer, Weight, Dna, Zap, Bug, Rabbit, PawPrint, Shield, UserCheck, Sword, PauseCircle, Hand, AlertTriangle } from 'lucide-react';
+import { Flame, Droplet, Skull, Heart, Wind, Activity, Wand2, Feather, Hammer, Weight, Dna, Zap, Bug, Rabbit, PawPrint, UserCheck, Sword, PauseCircle, Hand, AlertTriangle, ShieldCheck, Check } from 'lucide-react';
 import { PlayerSelection, Entity, ModifierType } from '../../types';
 import { evaluateFormula } from '../../services/engine';
 import { DebouncedSlider } from '../ui/DebouncedControl';
@@ -113,32 +113,75 @@ export const ThanatoOrganSelector: React.FC<{ toggles: Record<string, boolean>; 
     );
 };
 
-// ... (Rest of components updated similarly with improved visuals) ...
-// For brevity, I will only include the updated visual components as requested in the plan.
+export const ArlequinDealer: React.FC<{ toggles: Record<string, boolean>; onToggle: (id: string, group: string) => void; context?: any }> = ({ toggles, onToggle, context }) => {
+    
+    // Valeurs FIXES comme demandé
+    const valStd = 20;
+    const valRoyal = 50;
 
-export const ArlequinDealer: React.FC<{ toggles: Record<string, boolean>; onToggle: (id: string, group: string) => void }> = ({ toggles, onToggle }) => {
     const cards = [
-        { id: 'card_spade', label: 'Pique', icon: '♠', color: 'text-slate-200', bg: 'bg-slate-800' },
-        { id: 'card_club', label: 'Trèfle', icon: '♣', color: 'text-emerald-400', bg: 'bg-emerald-950' },
-        { id: 'card_diamond', label: 'Carreau', icon: '♦', color: 'text-amber-400', bg: 'bg-amber-950' },
-        { id: 'card_heart', label: 'Cœur', icon: '♥', color: 'text-rose-500', bg: 'bg-rose-950' },
-        { id: 'card_royal', label: 'Royal', icon: '★', color: 'text-yellow-400', bg: 'bg-indigo-950' },
+        { id: 'card_spade', label: 'Pique', icon: '♠', color: 'text-slate-200', border: 'border-slate-400', bgActive: 'bg-slate-800', stat: 'Dégâts', val: `+${valStd}%` },
+        { id: 'card_club', label: 'Trèfle', icon: '♣', color: 'text-emerald-400', border: 'border-emerald-500', bgActive: 'bg-emerald-950', stat: 'Vitesse', val: `+${valStd}%` },
+        { id: 'card_heart', label: 'Cœur', icon: '♥', color: 'text-rose-500', border: 'border-rose-500', bgActive: 'bg-rose-950', stat: 'Vitalité', val: `+${valStd}%` },
+        { id: 'card_diamond', label: 'Carreau', icon: '♦', color: 'text-amber-400', border: 'border-amber-500', bgActive: 'bg-amber-950', stat: 'TOUT', val: `+${valStd}%` },
+        { id: 'card_royal', label: 'Royal', icon: '★', color: 'text-yellow-400', border: 'border-yellow-400', bgActive: 'bg-gradient-to-b from-yellow-900 to-indigo-900', stat: 'TOUT', val: `+${valRoyal}%`, isRoyal: true },
     ];
+
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mt-4">
-            <div className="flex items-center justify-between mb-3"><h4 className="text-sm font-perrigord text-amber-500 flex items-center tracking-wide"><Dna size={16} className="mr-2" /> Tirage du Destin</h4></div>
-            <div className="flex justify-between items-center gap-2">
+            <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-perrigord text-amber-500 flex items-center tracking-wide">
+                    <Dna size={16} className="mr-2" /> Tirage du Destin
+                </h4>
+                <div className="text-[10px] text-slate-500 font-mono">Une carte active à la fois</div>
+            </div>
+            
+            <div className="grid grid-cols-5 gap-2">
                 {cards.map(card => {
                     const isActive = toggles[card.id];
                     return (
-                        <button key={card.id} onClick={() => onToggle(card.id, 'arlequin_card')} 
-                            className={`flex-1 flex flex-col items-center justify-center py-4 rounded-lg border transition-all duration-300 ${
-                                isActive 
-                                ? `bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] transform -translate-y-1 scale-105 z-10` 
-                                : `border-slate-800 bg-slate-950/50 ${card.color} opacity-60 hover:opacity-100 hover:-translate-y-0.5`
-                            }`}
+                        <button 
+                            key={card.id} 
+                            onClick={() => onToggle(card.id, 'arlequin_card')} 
+                            className={`
+                                relative aspect-[2/3] rounded-lg border flex flex-col items-center justify-between py-2 transition-all duration-300 group select-none
+                                ${isActive 
+                                    ? `${card.bgActive} ${card.border} scale-105 shadow-[0_0_15px_rgba(0,0,0,0.5)] z-10 translate-y-[-4px]` 
+                                    : 'bg-slate-950 border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600 grayscale-[0.5] hover:grayscale-0'
+                                }
+                            `}
                         >
-                            <span className={`text-2xl leading-none mb-1 ${isActive && card.id === 'card_royal' ? 'animate-spin-slow' : ''}`}>{card.icon}</span>
+                            {/* Card Corner Pips */}
+                            <div className={`absolute top-1 left-1.5 text-[8px] leading-none ${card.color} font-bold opacity-80`}>
+                                <div>{card.isRoyal ? 'R' : 'A'}</div>
+                                <div>{card.icon}</div>
+                            </div>
+                            <div className={`absolute bottom-1 right-1.5 text-[8px] leading-none ${card.color} font-bold opacity-80 rotate-180`}>
+                                <div>{card.isRoyal ? 'R' : 'A'}</div>
+                                <div>{card.icon}</div>
+                            </div>
+
+                            {/* Center Icon */}
+                            <div className={`text-2xl mt-1 transition-transform duration-500 ${isActive ? 'scale-110 drop-shadow-md' : ''} ${card.isRoyal && isActive ? 'animate-spin-slow' : ''} ${card.color}`}>
+                                {card.icon}
+                            </div>
+
+                            {/* Value Display */}
+                            <div className="text-center z-10">
+                                <div className={`text-[9px] font-bold ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                                    {card.val}
+                                </div>
+                                {isActive && (
+                                    <div className={`text-[7px] uppercase font-bold tracking-wider ${card.color} animate-in fade-in zoom-in duration-300`}>
+                                        {card.stat}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Royal Glow Effect */}
+                            {card.isRoyal && isActive && (
+                                <div className="absolute inset-0 bg-yellow-400/10 blur-xl rounded-lg pointer-events-none"></div>
+                            )}
                         </button>
                     )
                 })}
@@ -183,7 +226,6 @@ export const PugilistStances: React.FC<{ toggles: Record<string, boolean>; onTog
     );
 };
 
-// Re-export other components unchanged or slightly polished
 export const ArcaneSacrificePanel: React.FC<{ currentValue: number; onChange: (val: number) => void; context?: any; }> = ({ currentValue, onChange, context }) => {
     const totalVal = getScaledValue(currentValue * 10, context);
     return (

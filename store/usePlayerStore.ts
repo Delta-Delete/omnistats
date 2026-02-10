@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PlayerSelection, Entity, ItemConfigValues } from '../types';
@@ -16,6 +17,7 @@ const DEFAULT_SELECTION: PlayerSelection = {
   specialItems: [],
   itemConfigs: {}, // NEW: Configurable items storage
   toggles: {},
+  companionToggles: {}, // NEW: Companion specific toggles
   sliderValues: {}, // CLEANED
   naturalStrengthAllocation: [],
   eliteCompetenceActive: false,
