@@ -2,7 +2,7 @@
 import React from 'react';
 import { Heart, Zap, Sword, Coins, Activity } from 'lucide-react';
 import { CalculationResult, StatResult } from '../../types';
-import { AnimatedCounter } from './utils';
+import { AnimatedCounter } from '../ui/AnimatedCounter';
 
 interface StickyStatsHUDProps {
     result: CalculationResult;

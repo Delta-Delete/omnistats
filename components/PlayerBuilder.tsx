@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Download, Upload, ToggleRight, ChevronDown, User, Sword, Activity } from 'lucide-react';
 import { usePlayerEngine } from '../hooks/usePlayerEngine';
@@ -162,7 +161,15 @@ export default function PlayerBuilder() {
       
       {/* MODALS */}
       {ui.isForgeOpen && (
-          <WeaponForgeModal categories={categories} stats={stats} factions={factions} allItems={allItems} onClose={() => ui.setIsForgeOpen(false)} onSave={(item) => { createCustomItem(item, 'weapon_any'); ui.setIsForgeOpen(false); }}/>
+          <WeaponForgeModal 
+              categories={categories} 
+              stats={stats} 
+              factions={factions} 
+              allItems={allItems} 
+              onClose={() => ui.setIsForgeOpen(false)} 
+              onSave={(item) => { createCustomItem(item, 'weapon_any'); ui.setIsForgeOpen(false); }}
+              classId={selection.classId} // PASS CLASS ID
+          />
       )}
       {ui.isCompanionForgeOpen && (
           <CompanionForgeModal categories={categories} onClose={() => ui.setIsCompanionForgeOpen(false)} onSave={(item) => { createCustomItem(item, 'custom_companion'); ui.setIsCompanionForgeOpen(false); }} />
@@ -230,8 +237,10 @@ export default function PlayerBuilder() {
       {!ui.isStatusPanelOpen && (
           <StatusWidget 
               selection={selection} 
+              setSelection={updateSelection} // Pass Updater
               activeEntities={activeEntities} 
-              onClick={() => ui.setIsStatusPanelOpen(true)} 
+              onClick={() => ui.setIsStatusPanelOpen(true)}
+              context={contextForDisplay} // Pass Context
           />
       )}
 

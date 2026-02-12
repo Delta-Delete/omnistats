@@ -8,9 +8,10 @@ interface FusionForgeTabProps {
     allItems: Entity[];
     stats: StatDefinition[];
     onSave: (item: Entity) => void;
+    classId?: string; // NEW
 }
 
-export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats, onSave }) => {
+export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats, onSave, classId }) => {
     const [fusionIngredients, setFusionIngredients] = useState<string[]>([]);
     const [fusionSearch, setFusionSearch] = useState('');
     const [fusionName, setFusionName] = useState('');
@@ -22,20 +23,38 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         const subCats = new Set<string>();
         allItems.forEach(item => {
             if ((item.categoryId === 'weapon' || item.slotId === 'weapon_any') && item.subCategory) {
-                subCats.add(item.subCategory);
+                // Class Restriction Check
+                let allowed = true;
+                if (classId === 'arlequins' && item.subCategory !== 'Decks') allowed = false;
+                if (classId === 'technophiles' && item.subCategory !== 'Armes technologiques') allowed = false;
+                if (classId === 'virtuoses' && !item.subCategory.startsWith('Instrument')) allowed = false;
+                
+                if (allowed) subCats.add(item.subCategory);
             }
         });
         return Array.from(subCats).sort();
-    }, [allItems]);
+    }, [allItems, classId]);
 
     const availableIngredients = useMemo(() => {
         return (allItems || []).filter(item => {
             const isWeapon = item.categoryId === 'weapon' || (item.slotId === 'weapon_any');
             const matchesSearch = !fusionSearch || item.name.toLowerCase().includes(fusionSearch.toLowerCase());
             const matchesCat = !fusionCategoryFilter || item.subCategory === fusionCategoryFilter;
-            return isWeapon && matchesSearch && matchesCat;
+            
+            // Class Restriction Check
+            let isAllowed = true;
+            if (classId === 'arlequins') {
+                if (item.subCategory !== 'Decks') isAllowed = false;
+                // --- RESTRICTION ARLEQUIN : UNICITÉ ---
+                // Si l'objet est déjà dans la liste des ingrédients, on ne l'affiche plus
+                if (fusionIngredients.includes(item.id)) isAllowed = false;
+            }
+            if (classId === 'technophiles' && item.subCategory !== 'Armes technologiques') isAllowed = false;
+            if (classId === 'virtuoses' && (!item.subCategory || !item.subCategory.startsWith('Instrument'))) isAllowed = false;
+
+            return isWeapon && matchesSearch && matchesCat && isAllowed;
         });
-    }, [allItems, fusionSearch, fusionCategoryFilter]);
+    }, [allItems, fusionSearch, fusionCategoryFilter, classId, fusionIngredients]);
 
     const selectedEntities = useMemo(() => {
         return fusionIngredients.map(id => allItems.find(i => i.id === id)).filter(Boolean) as Entity[];
@@ -46,8 +65,13 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         selectedEntities.forEach(e => {
             if(e.subCategory) types.add(e.subCategory);
         });
+        // Override for restrictions: if I fuse Decks, I can only make a Deck (usually implicit, but enforced here)
+        if (classId === 'arlequins') return ['Decks'];
+        if (classId === 'technophiles') return ['Armes technologiques'];
+        if (classId === 'virtuoses') return Array.from(types).filter(t => t.startsWith('Instrument'));
+
         return Array.from(types).sort();
-    }, [selectedEntities]);
+    }, [selectedEntities, classId]);
 
     const fusionTotalGold = useMemo(() => {
         return selectedEntities.reduce((sum, e) => sum + (e.goldCost || 0), 0);
@@ -63,9 +87,10 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
                 setFusionTargetSubCat(fusionPossibleTypes[0]);
             }
         } else {
-            setFusionTargetSubCat('');
+            // Default subcat if list empty or custom
+            setFusionTargetSubCat(classId === 'arlequins' ? 'Decks' : 'Amalgame');
         }
-    }, [fusionPossibleTypes]);
+    }, [fusionPossibleTypes, classId]);
 
     // --- ALGEBRA PREVIEW LOGIC ---
     const fusionPreviewStats = useMemo(() => {
@@ -139,35 +164,57 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         if (!fusionName || selectedEntities.length < 2) return;
 
         const newId = `fused_wep_${Date.now()}`;
-        const allMods = selectedEntities.flatMap(ent => ent.modifiers || []);
         const capMods: any[] = [];
         const complexModifiers: any[] = [];
         const mergeableBuckets: Record<string, { type: ModifierType, values: string[] }> = {};
 
-        allMods.forEach(mod => {
-            if (mod.targetStatKey === 'partition_cap') {
-                capMods.push(mod);
-                return;
-            }
-            const isMergeableType = mod.type === ModifierType.FLAT || mod.type === ModifierType.PERCENT_ADD;
-            const isClean = !mod.condition && !mod.toggleId && !mod.toggleGroup;
+        // --- INHERIT USER CONFIG (e.g. Tarolex Slider) ---
+        let inheritedUserConfig: any = undefined;
+        let configSourceId: string | undefined = undefined;
 
-            if (isMergeableType && isClean) {
-                const key = `${mod.targetStatKey}|${mod.type}`; 
-                if (!mergeableBuckets[key]) {
-                    mergeableBuckets[key] = { type: mod.type, values: [] };
-                }
-                mergeableBuckets[key].values.push(mod.value);
-            } else {
-                complexModifiers.push({
-                    ...mod,
-                    id: `${newId}_cx_${Math.random().toString(36).substr(2, 5)}`
-                });
+        for (const ent of selectedEntities) {
+            if (ent.userConfig) {
+                inheritedUserConfig = ent.userConfig;
+                configSourceId = ent.id;
+                break; // Only inherit the first config found to avoid conflicts
             }
+        }
+
+        // Iterate through Entities to capture SOURCE NAME in modifiers
+        selectedEntities.forEach(ent => {
+            (ent.modifiers || []).forEach(mod => {
+                if (mod.targetStatKey === 'partition_cap') {
+                    capMods.push(mod);
+                    return;
+                }
+                const isMergeableType = mod.type === ModifierType.FLAT || mod.type === ModifierType.PERCENT_ADD;
+                const isClean = !mod.condition && !mod.toggleId && !mod.toggleGroup;
+
+                // IMPORTANT: Tag modifier with Source Name for later filtering (Secret Card)
+                const taggedName = `[${ent.name}] ${mod.name || 'Effet'}`;
+
+                // CRITICAL FIX: Disable merging for Arlequins to preserve source name for Secret Card Targeting
+                const avoidMerging = classId === 'arlequins';
+
+                if (isMergeableType && isClean && !avoidMerging) {
+                    const key = `${mod.targetStatKey}|${mod.type}`; 
+                    if (!mergeableBuckets[key]) {
+                        mergeableBuckets[key] = { type: mod.type, values: [] };
+                    }
+                    mergeableBuckets[key].values.push(mod.value);
+                } else {
+                    complexModifiers.push({
+                        ...mod,
+                        id: `${newId}_cx_${Math.random().toString(36).substr(2, 5)}`,
+                        name: taggedName // APPLY TAG
+                    });
+                }
+            });
         });
 
         const finalModifiers = [...complexModifiers];
 
+        // --- MERGED MODIFIERS PROCESSING ---
         Object.entries(mergeableBuckets).forEach(([key, data]) => {
             const [statKey] = key.split('|');
             const { type, values } = data;
@@ -215,6 +262,20 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
             });
         });
 
+        // --- REPLACE CONFIG VARIABLE NAMES ---
+        // If we inherited a config, update the modifiers to use the new item ID variable
+        if (configSourceId) {
+            const oldVar = `config_${configSourceId}_val`;
+            const newVar = `config_${newId}_val`;
+            
+            // Update complex/merged modifiers
+            finalModifiers.forEach(mod => {
+                if (mod.value && mod.value.includes(oldVar)) {
+                    mod.value = mod.value.split(oldVar).join(newVar);
+                }
+            });
+        }
+
         let maxPartitionCap = 0;
         capMods.forEach(m => {
             const val = parseInt(m.value, 10);
@@ -234,24 +295,29 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         const mergedDescriptionBlocks: DescriptionBlock[] = [];
         mergedDescriptionBlocks.push({ title: "Alliance", text: descText, tag: "info" });
 
-        // MERGE SUMMONS (CORRECTION HERE)
-        const mergedSummons: any[] = [];
-        selectedEntities.forEach(ent => {
-            if (ent.summons && ent.summons.length > 0) {
-                mergedSummons.push(...ent.summons);
-            }
-        });
-
         selectedEntities.forEach(ent => {
             if (ent.descriptionBlocks && ent.descriptionBlocks.length > 0) {
                 ent.descriptionBlocks.forEach(b => {
+                    // Update descriptions if they reference config variables
+                    let text = b.text;
+                    if (configSourceId && text.includes(`config_${configSourceId}_val`)) {
+                        text = text.split(`config_${configSourceId}_val`).join(`config_${newId}_val`);
+                    }
+
                     mergedDescriptionBlocks.push({
                         ...b,
+                        text: text,
                         title: b.title ? `${b.title} (${ent.name})` : ent.name
                     });
                 });
             } else if (ent.description && !ent.description.startsWith('Fusion:')) {
-                mergedDescriptionBlocks.push({ title: ent.name, text: ent.description, tag: 'passive' });
+                // Same for standard description
+                let text = ent.description;
+                if (configSourceId && text.includes(`config_${configSourceId}_val`)) {
+                    text = text.split(`config_${configSourceId}_val`).join(`config_${newId}_val`);
+                }
+                // FIX: Pas de tag 'passive' ici pour éviter l'affichage badge
+                mergedDescriptionBlocks.push({ title: ent.name, text: text });
             }
         });
 
@@ -275,6 +341,14 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
         const mergedTags = new Set<string>();
         selectedEntities.forEach(e => { if (e.tags) e.tags.forEach(t => mergedTags.add(t)); });
         
+        // --- PRESERVE SUMMONS (Invocations) ---
+        const mergedSummons: any[] = [];
+        selectedEntities.forEach(e => {
+            if (e.summons && e.summons.length > 0) {
+                mergedSummons.push(...e.summons);
+            }
+        });
+
         const finalSubCategory = fusionTargetSubCat || 'Amalgame';
 
         const fusedItem: Entity = {
@@ -289,7 +363,6 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
             equipmentCost: 2, 
             goldCost: fusionTotalGold,
             modifiers: finalModifiers,
-            summons: mergedSummons.length > 0 ? mergedSummons : undefined, // ADDED
             isCraftable: false,
             isTungsten: isResultTungsten,
             imageUrl: selectedEntities[0].imageUrl,
@@ -297,7 +370,9 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
             factionId: inheritedFactionId,
             guildStatus: inheritedGuildStatus,
             rarity: finalRarity,
-            tags: mergedTags.size > 0 ? Array.from(mergedTags) : undefined
+            tags: mergedTags.size > 0 ? Array.from(mergedTags) : undefined,
+            summons: mergedSummons.length > 0 ? mergedSummons : undefined, // Add Summons
+            userConfig: inheritedUserConfig // Add inherited Config
         };
 
         onSave(fusedItem);
@@ -442,7 +517,7 @@ export const FusionForgeTab: React.FC<FusionForgeTabProps> = ({ allItems, stats,
                                     </div>
                                 )}
                                 <div className="mt-3 text-[9px] text-slate-500 italic border-t border-indigo-500/10 pt-2">
-                                    Note : Les bonus identiques s'additionnent algébriquement.
+                                    Note : Les bonus identiques s'additionnent algébriquement. Les configurations interactives (sliders) sont héritées du premier objet compatible.
                                 </div>
                             </div>
                         </div>

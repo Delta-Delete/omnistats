@@ -9,9 +9,10 @@ interface StandardForgeTabProps {
     stats: StatDefinition[];
     factions?: Entity[];
     onSave: (item: Entity) => void;
+    classId?: string; // NEW
 }
 
-export const StandardForgeTab: React.FC<StandardForgeTabProps> = ({ categories, stats, factions, onSave }) => {
+export const StandardForgeTab: React.FC<StandardForgeTabProps> = ({ categories, stats, factions, onSave, classId }) => {
     const [tempItemId] = useState(`custom_wep_${Date.now()}`);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -22,16 +23,46 @@ export const StandardForgeTab: React.FC<StandardForgeTabProps> = ({ categories, 
     const [factionId, setFactionId] = useState('');
     const [bonuses, setBonuses] = useState<{id: string, stat: string, val: string, name: string}[]>([{ id: `${tempItemId}_m0`, stat: 'dmg', val: '10', name: '' }]);
 
+    // FORCE FAMILY SELECTION IF CLASS REQUIRES IT
+    useEffect(() => {
+        if (classId === 'virtuoses') setWeaponFamily('instrument');
+        // If Arlequins or Technophiles, typically they assume 'standard' (Decks/Tech Weapons are in 'weapon' cat)
+        // But if they were previously on 'instrument', we reset.
+        if (classId === 'arlequins' || classId === 'technophiles') setWeaponFamily('standard');
+    }, [classId]);
+
     const availableTypes = useMemo((): string[] => {
         const weaponCat = (categories || []).find(c => c.id === 'weapon');
         if (!weaponCat || !weaponCat.subCategories) return [];
-        if (weaponFamily === 'instrument') return weaponCat.subCategories.filter(sc => sc.startsWith('Instrument'));
-        else return weaponCat.subCategories.filter(sc => !sc.startsWith('Instrument'));
-    }, [categories, weaponFamily]);
+        
+        let candidates = [];
+        
+        if (weaponFamily === 'instrument') {
+            candidates = weaponCat.subCategories.filter(sc => sc.startsWith('Instrument'));
+        } else {
+            candidates = weaponCat.subCategories.filter(sc => !sc.startsWith('Instrument'));
+        }
+
+        // --- CLASS RESTRICTIONS ---
+        if (classId === 'arlequins') {
+            return candidates.filter(sc => sc === 'Decks');
+        }
+        if (classId === 'technophiles') {
+            return candidates.filter(sc => sc === 'Armes technologiques');
+        }
+        // Virtuoses handled by forcing 'instrument' family above, but we can double check
+        if (classId === 'virtuoses') {
+            return candidates.filter(sc => sc.startsWith('Instrument'));
+        }
+        
+        return candidates;
+    }, [categories, weaponFamily, classId]);
 
     useEffect(() => { 
         if (availableTypes.length > 0 && !availableTypes.includes(subCat)) {
             setSubCat(availableTypes[0]); 
+        } else if (availableTypes.length === 0) {
+            setSubCat('');
         }
     }, [availableTypes, subCat]);
 
@@ -64,12 +95,29 @@ export const StandardForgeTab: React.FC<StandardForgeTabProps> = ({ categories, 
                 <div><label className="block text-xs uppercase font-bold text-slate-500 mb-1">Nom de l'arme</label><input value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-500 placeholder-slate-600" placeholder="Ex: Excalibur" autoFocus /></div>
                 <div><label className="block text-xs uppercase font-bold text-slate-500 mb-1">Description / Effets Narratifs</label><textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-500 placeholder-slate-600 resize-none h-20 text-xs" placeholder="Ex: Une lame qui vibre. Inflige {{custom_wep_..._m0}} dégâts bruts." /></div>
                 
-                {availableTypes.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="block text-xs uppercase font-bold text-slate-500 mb-1">Classe d'objet</label><div className="flex bg-slate-800 rounded border border-slate-700 overflow-hidden"><button onClick={() => setWeaponFamily('standard')} className={`flex-1 py-2 text-[10px] uppercase font-bold transition-colors ${weaponFamily === 'standard' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Arme</button><div className="w-px bg-slate-700"></div><button onClick={() => setWeaponFamily('instrument')} className={`flex-1 py-2 text-[10px] uppercase font-bold transition-colors ${weaponFamily === 'instrument' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Instrument</button></div></div>
-                        <div><label className="block text-xs uppercase font-bold text-slate-500 mb-1">Type Spécifique</label><select value={subCat} onChange={e => setSubCat(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-500">{availableTypes.map(t => <option key={t} value={t}>{t.replace('Instrument ', '')}</option>)}</select></div>
+                {/* Weapon Class Selector - HIDDEN IF CLASS HAS RESTRICTIONS */}
+                {(!classId || (!['arlequins', 'technophiles', 'virtuoses'].includes(classId))) && availableTypes.length > 0 && (
+                    <div>
+                        <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Classe d'objet</label>
+                        <div className="flex bg-slate-800 rounded border border-slate-700 overflow-hidden">
+                            <button onClick={() => setWeaponFamily('standard')} className={`flex-1 py-2 text-[10px] uppercase font-bold transition-colors ${weaponFamily === 'standard' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Arme</button>
+                            <div className="w-px bg-slate-700"></div>
+                            <button onClick={() => setWeaponFamily('instrument')} className={`flex-1 py-2 text-[10px] uppercase font-bold transition-colors ${weaponFamily === 'instrument' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>Instrument</button>
+                        </div>
                     </div>
-                ) : (<div className="p-3 border border-red-900/50 bg-red-900/20 rounded text-xs text-red-300">Catégorie 'Arme' introuvable.</div>)}
+                )}
+
+                {/* Subcategory Selector */}
+                {availableTypes.length > 0 ? (
+                    <div>
+                        <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Type Spécifique</label>
+                        <select value={subCat} onChange={e => setSubCat(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white outline-none focus:border-amber-500">
+                            {availableTypes.map(t => <option key={t} value={t}>{t.replace('Instrument ', '')}</option>)}
+                        </select>
+                    </div>
+                ) : (
+                    <div className="p-3 border border-red-900/50 bg-red-900/20 rounded text-xs text-red-300">Aucun type d'arme disponible pour cette classe.</div>
+                )}
                 
                 {weaponFamily === 'instrument' && (<div className="bg-indigo-900/10 border border-indigo-500/20 p-3 rounded-lg"><label className="flex justify-between text-xs uppercase font-bold text-indigo-300 mb-2"><span className="flex items-center"><Music size={12} className="mr-1"/> Slots de Partitions</span><span className="text-white bg-indigo-600 px-2 rounded-full">{partitionCount}</span></label><input type="range" min="1" max="9" value={partitionCount} onChange={(e) => setPartitionCount(parseInt(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"/><div className="flex justify-between text-[9px] text-slate-500 mt-1 font-mono"><span>1</span><span>9</span></div></div>)}
                 

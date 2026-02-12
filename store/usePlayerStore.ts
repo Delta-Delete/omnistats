@@ -15,7 +15,8 @@ const DEFAULT_SELECTION: PlayerSelection = {
   bonusItems: [],
   sealItems: ['seal_vitality_starter'], // Mandatory Starter Item
   specialItems: [],
-  itemConfigs: {}, // NEW: Configurable items storage
+  itemConfigs: {}, 
+  companionItemConfigs: {}, // NEW: Companion specific configs
   toggles: {},
   companionToggles: {}, // NEW: Companion specific toggles
   sliderValues: {}, // CLEANED
@@ -49,8 +50,9 @@ interface PlayerState {
     // UpdateSelection signature matches React's setState to avoid refactoring all children
     updateSelection: (updater: SelectionUpdater) => void;
     
-    // NEW: Targeted update for item configs
-    updateItemConfig: (itemId: string, key: keyof ItemConfigValues, value: number) => void;
+    // Targeted updates
+    updateItemConfig: (itemId: string, key: keyof ItemConfigValues, value: number | string) => void;
+    updateCompanionItemConfig: (itemId: string, key: keyof ItemConfigValues, value: number | string) => void;
 
     resetSelection: () => void;
 
@@ -88,6 +90,19 @@ export const usePlayerStore = create<PlayerState>()(
                         ...state.selection,
                         itemConfigs: {
                             ...(state.selection.itemConfigs || {}),
+                            [itemId]: { ...currentConfig, [key]: value }
+                        }
+                    }
+                };
+            }),
+
+            updateCompanionItemConfig: (itemId, key, value) => set((state) => {
+                const currentConfig = state.selection.companionItemConfigs?.[itemId] || {};
+                return {
+                    selection: {
+                        ...state.selection,
+                        companionItemConfigs: {
+                            ...(state.selection.companionItemConfigs || {}),
                             [itemId]: { ...currentConfig, [key]: value }
                         }
                     }

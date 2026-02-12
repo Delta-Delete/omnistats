@@ -64,10 +64,11 @@ export const MAGIC_ITEMS: Entity[] = [
             name: 'Pantin Joker',
             countValue: '1',
             stats: {
-                // Utilisation de (X || 1) pour garantir une valeur par défaut si le ratio n'est pas encore calculé
-                vit: '1000 * (ratio_deck_vit || 1)',
-                spd: '200 * (ratio_deck_spd || 1)',
-                dmg: '100 * (ratio_deck_dmg || 1)'
+                // FORMULE UTILISATEUR : (Base + Flat) * (Ratio + Boost)
+                // (weapon_effect_mult exclu)
+                vit: '(1000 + (summon_flat_bonus || 0)) * ((ratio_deck_vit || 1) + (effect_booster || 0)/100)',
+                spd: '(200 + (summon_flat_bonus || 0)) * ((ratio_deck_spd || 1) + (effect_booster || 0)/100)',
+                dmg: '(100 + (summon_flat_bonus || 0)) * ((ratio_deck_dmg || 1) + (effect_booster || 0)/100)'
             }
         }
     ]
@@ -138,35 +139,36 @@ export const MAGIC_ITEMS: Entity[] = [
   },
 
   // --- ENCHANTEMENTS (VITALITÉ) ---
+  // CHANGEMENT ICI : PERCENT_ADD -> ALT_PERCENT pour multiplicatif final
   {
     id: 'e_vit_1', type: EntityType.ITEM, name: 'Ench. Vitalité I (+5%)',
     slotId: 'ench_vit', categoryId: 'enchantment', subCategory: 'Vitalité',
     isCraftable: true, companionAllowed: false,
-    modifiers: [{ id: 'me_v1', type: ModifierType.PERCENT_ADD, targetStatKey: 'vit', value: '5 * enchantment_mult' }]
+    modifiers: [{ id: 'me_v1', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '5 * enchantment_mult' }]
   },
   {
     id: 'e_vit_2', type: EntityType.ITEM, name: 'Ench. Vitalité II (+10%)',
     slotId: 'ench_vit', categoryId: 'enchantment', subCategory: 'Vitalité',
     isCraftable: true, companionAllowed: false,
-    modifiers: [{ id: 'me_v2', type: ModifierType.PERCENT_ADD, targetStatKey: 'vit', value: '10 * enchantment_mult' }]
+    modifiers: [{ id: 'me_v2', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '10 * enchantment_mult' }]
   },
   {
     id: 'e_vit_3', type: EntityType.ITEM, name: 'Ench. Vitalité III (+15%)',
     slotId: 'ench_vit', categoryId: 'enchantment', subCategory: 'Vitalité',
     isCraftable: true, companionAllowed: false,
-    modifiers: [{ id: 'me_v3', type: ModifierType.PERCENT_ADD, targetStatKey: 'vit', value: '15 * enchantment_mult' }]
+    modifiers: [{ id: 'me_v3', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '15 * enchantment_mult' }]
   },
   {
     id: 'e_vit_4', type: EntityType.ITEM, name: 'Ench. Vitalité IV (+20%)',
     slotId: 'ench_vit', categoryId: 'enchantment', subCategory: 'Vitalité',
     isCraftable: true, companionAllowed: false,
-    modifiers: [{ id: 'me_v4', type: ModifierType.PERCENT_ADD, targetStatKey: 'vit', value: '20 * enchantment_mult' }]
+    modifiers: [{ id: 'me_v4', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '20 * enchantment_mult' }]
   },
   {
     id: 'e_vit_5', type: EntityType.ITEM, name: 'Ench. Vitalité V (+25%)',
     slotId: 'ench_vit', categoryId: 'enchantment', subCategory: 'Vitalité',
     isCraftable: true, companionAllowed: false,
-    modifiers: [{ id: 'me_v5', type: ModifierType.PERCENT_ADD, targetStatKey: 'vit', value: '25 * enchantment_mult' }]
+    modifiers: [{ id: 'me_v5', type: ModifierType.ALT_PERCENT, targetStatKey: 'vit', value: '25 * enchantment_mult' }]
   },
 
   // --- SEALS (SCEAUX) ---
@@ -176,7 +178,6 @@ export const MAGIC_ITEMS: Entity[] = [
     name: 'Sceau de vitalité',
     categoryId: 'seal',
     subCategory: 'Magique',
-    // description: REMOVED as requested
     hideInRecap: true,
     modifiers: [
         { id: 'sv_l10', type: ModifierType.FLAT, targetStatKey: 'vit', value: '100 * (1 + seal_potency / 100)', condition: 'level >= 10' },

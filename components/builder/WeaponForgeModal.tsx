@@ -11,8 +11,9 @@ export const WeaponForgeModal: React.FC<{
     factions?: Entity[]; 
     allItems: Entity[];
     onClose: () => void; 
-    onSave: (item: Entity) => void; 
-}> = ({ categories, stats, factions, allItems, onClose, onSave }) => {
+    onSave: (item: Entity) => void;
+    classId?: string; // NEW PROP
+}> = ({ categories, stats, factions, allItems, onClose, onSave, classId }) => {
     const [activeTab, setActiveTab] = useState<'create' | 'fusion'>('create');
 
     return (
@@ -71,7 +72,8 @@ export const WeaponForgeModal: React.FC<{
                                 categories={categories} 
                                 stats={stats} 
                                 factions={factions} 
-                                onSave={onSave} 
+                                onSave={onSave}
+                                classId={classId} // PASSED
                             />
                         </div>
                     ) : (
@@ -79,7 +81,8 @@ export const WeaponForgeModal: React.FC<{
                             <FusionForgeTab 
                                 allItems={allItems} 
                                 stats={stats} 
-                                onSave={onSave} 
+                                onSave={onSave}
+                                classId={classId} // PASSED
                             />
                         </div>
                     )}

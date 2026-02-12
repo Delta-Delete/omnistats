@@ -45,7 +45,11 @@ const DiagnosticPanel: React.FC<{ entities: Entity[]; stats: StatDefinition[]; c
         'career_artist_rank', 'career_religion_rank', 'career_commerce_rank', 'career_athlete_rank',
         'arcane_sacrifice_count', 'colere_vive_stacks', 'sans_peur_stacks', 'rage_stacks',
         'ratio_deck_dmg', 'ratio_deck_spd', 'ratio_deck_vit', 'ratio_deck_crit',
-        'malus_aqua'
+        'malus_aqua',
+        // NEW: Local context variables for Companion calculations
+        'unit_scale',
+        'local_base_vit', 'local_base_spd', 'local_base_dmg', 
+        'local_base_res', 'local_base_aura', 'local_base_crit_primary', 'local_base_crit_secondary'
     ]);
 
     entities.forEach(e => {

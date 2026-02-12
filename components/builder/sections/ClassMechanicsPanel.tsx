@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Crown, Dna, Database, Ghost } from 'lucide-react';
+import { Crown, Dna, Database, Ghost, Info } from 'lucide-react';
 import { PlayerSelection, Entity, EntityType, StatResult } from '../../../types';
 import { BloodMagicSelector, ThanatoOrganSelector, ArcaneSacrificePanel, NaturalStrengthPanel, ArlequinDealer, PugilistStances, ZenitudePanel, LutteurPanel, SansPeurPanel, RagePanel, ColereVivePanel } from '../ClassMechanics';
 import { CeleriteIndicator, AnticipationIndicator, ChevalierIndicator, ParadesParfaitesIndicator, CroiseIndicator, MaitreAirIndicator, CriGuerreIndicator } from '../ClassIndicators';
@@ -135,7 +135,12 @@ export const ClassMechanicsPanel: React.FC<ClassMechanicsPanelProps> = ({ select
             )}
 
             {/* CLASS SPECIFIC WIDGETS */}
-            {selection.classId === 'arlequins' && (<ArlequinDealer toggles={selection.toggles} onToggle={toggleEffect} context={context} />)}
+            {selection.classId === 'arlequins' && (
+                <>
+                    <ArlequinDealer toggles={selection.toggles} onToggle={toggleEffect} context={context} />
+                </>
+            )}
+            
             {selection.classId === 'pugilistes' && (<PugilistStances toggles={selection.toggles} onToggle={toggleEffect} />)}
             {selection.specializationId === 'spec_zenitude' && (<ZenitudePanel active={selection.toggles['toggle_zenitude'] || false} onToggle={() => toggleEffect('toggle_zenitude')} />)}
             {selection.specializationId === 'spec_lutteur' && (<LutteurPanel active={selection.toggles['toggle_lutteur_unarmed'] || false} onToggle={() => toggleEffect('toggle_lutteur_unarmed')} hasWeapons={selection.weaponSlots.length > 0} />)}

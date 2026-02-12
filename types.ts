@@ -77,7 +77,9 @@ export interface ItemConfigValues {
     vit?: number;
     spd?: number;
     dmg?: number;
-    [key: string]: number | undefined;
+    targetSlotIndex?: number; // Added for Secret Card
+    targetSubName?: string; // NEW: Added for Secret Card targeting specific Fusion ingredient
+    [key: string]: number | string | undefined;
 }
 
 export interface DescriptionBlock {
@@ -100,6 +102,7 @@ export interface Modifier {
     toggleName?: string;
     toggleGroup?: string;
     displayTag?: string;
+    shareWithTeam?: number; // NEW: Ratio of effect shared with team (1 = 100%)
 }
 
 export interface SummonConfig {
@@ -122,6 +125,12 @@ export interface SummonDefinition {
         dmg: string;
     };
     sharePercent?: string;
+}
+
+export interface GuildRank {
+    id: string;
+    name: string;
+    modifiers?: Modifier[];
 }
 
 export interface Entity {
@@ -154,12 +163,13 @@ export interface Entity {
     rarity?: Rarity;
     companionAllowed?: CompanionAllowedMode;
     guildStatus?: string;
-    guildRanks?: Entity[];
-    secondaryGuildRanks?: Entity[];
+    guildRanks?: GuildRank[];
+    secondaryGuildRanks?: GuildRank[];
     summonConfig?: SummonConfig;
     summons?: SummonDefinition[];
     effectTag?: string;
     descriptionTitle?: string;
+    prestige?: number;
 }
 
 export interface StatDefinition {
@@ -198,6 +208,7 @@ export interface PlayerSelection {
     sealItems: string[];
     specialItems: string[];
     itemConfigs?: Record<string, ItemConfigValues>;
+    companionItemConfigs?: Record<string, ItemConfigValues>; // NEW: Config specific to companion items
     toggles: Record<string, boolean>;
     companionToggles?: Record<string, boolean>;
     sliderValues?: Record<string, number>;
@@ -266,6 +277,8 @@ export interface CalculationResult {
     activeSummons: ActiveSummon[];
     logs: string[];
     executionTime: number;
+    finalEntities?: Entity[]; // Added finalEntities
+    evalContext?: any; // Added evalContext
 }
 
 export type SummonProcessor = (entity: Entity, summonContext: any, flatBonus: number) => ActiveSummon | null;

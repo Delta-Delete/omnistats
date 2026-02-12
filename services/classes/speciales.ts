@@ -5,7 +5,7 @@ export const SPECIALES: Entity[] = [
   // --- ARLEQUINS ---
   {
     id: 'arlequins', type: EntityType.CLASS, name: 'Arlequins',
-    description: "Maître du hasard. Vos cartes activent des effets d'arme et boostent les ratios.\n♠ Pique (+20% Dmg)\n♣ Trèfle (+20% Spd)\n♥ Cœur (+20% Vit)\n♦ Carreau (+20% All)\n★ ROYAL: Tout (+50%)!",
+    description: "Trèfle (♣) : Les effets sur la vitesse sont augmentés de 20%\nCœur (♥) : les effets sur la vitalité sont augmentés de 20%\nPique (♠) : les effets sur les dégâts sont augmentés de 20%\nCarreau (♦) : Les effets sur toutes les stats sont augmentés de 20%\nRoyal : les effets sur toutes les stats sont augmentés de 50%",
     modifiers: [
       { id: 'c_arl_hp', type: ModifierType.FLAT, targetStatKey: 'vit', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
       { id: 'c_arl_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '20 + (level - 4 - Math.floor(level / 10)) * 20', condition: 'level >= 5' },

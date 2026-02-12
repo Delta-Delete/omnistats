@@ -2,11 +2,11 @@
 import { Entity, EntityType, ModifierType } from '../../types';
 
 export const CONFIGURABLE_SEALS: Entity[] = [
-  // --- SCEAU DU GARDIEN (LIBRE) ---
+  // --- SCEAU DE FACTION (LIBRE) ---
   {
     id: 'seal_gardien',
     type: EntityType.ITEM,
-    name: 'Sceau du Gardien',
+    name: 'Sceau de faction',
     categoryId: 'seal',
     subCategory: 'Magique',
     description: "Sceau de protection ajustable. Configurez vos stats librement.",
@@ -31,22 +31,6 @@ export const CONFIGURABLE_SEALS: Entity[] = [
         { id: 'sa_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: 'config_seal_aventurier_vit || 0' },
         { id: 'sa_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: 'config_seal_aventurier_spd || 0' },
         { id: 'sa_d', type: ModifierType.FLAT, targetStatKey: 'dmg', value: 'config_seal_aventurier_dmg || 0' }
-    ]
-  },
-
-  // --- SCEAU DU DRAGONNIER (LIBRE) ---
-  {
-    id: 'seal_dragonnier',
-    type: EntityType.ITEM,
-    name: 'Sceau du dragonnier',
-    categoryId: 'seal',
-    subCategory: 'Magique',
-    description: "Sceau de puissance ajustable. Configurez vos stats librement.",
-    userConfig: { type: 'manual_stats' },
-    modifiers: [
-        { id: 'sd_v', type: ModifierType.FLAT, targetStatKey: 'vit', value: 'config_seal_dragonnier_vit || 0' },
-        { id: 'sd_s', type: ModifierType.FLAT, targetStatKey: 'spd', value: 'config_seal_dragonnier_spd || 0' },
-        { id: 'sd_d', type: ModifierType.FLAT, targetStatKey: 'dmg', value: 'config_seal_dragonnier_dmg || 0' }
     ]
   },
 

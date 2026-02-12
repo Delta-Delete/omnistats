@@ -43,10 +43,11 @@ function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch
 }
 
 export const GameDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [stats, setStats] = usePersistentState<StatDefinition[]>('omnistat_config_stats_v16', INITIAL_STATS);
-  const [entities, setEntities] = usePersistentState<Entity[]>('omnistat_config_entities_v16', INITIAL_ENTITIES);
-  const [slots, setSlots] = usePersistentState<ItemSlot[]>('omnistat_config_slots_v16', ITEM_SLOTS);
-  const [categories, setCategories] = usePersistentState<ItemCategory[]>('omnistat_config_categories_v16', ITEM_CATEGORIES);
+  // VERSION BUMP TO v17 TO FORCE REFRESH OF DEFINITIONS
+  const [stats, setStats] = usePersistentState<StatDefinition[]>('omnistat_config_stats_v17', INITIAL_STATS);
+  const [entities, setEntities] = usePersistentState<Entity[]>('omnistat_config_entities_v17', INITIAL_ENTITIES);
+  const [slots, setSlots] = usePersistentState<ItemSlot[]>('omnistat_config_slots_v17', ITEM_SLOTS);
+  const [categories, setCategories] = usePersistentState<ItemCategory[]>('omnistat_config_categories_v17', ITEM_CATEGORIES);
 
   const handleFactoryReset = () => {
       console.log("Factory Reset Triggered");
@@ -55,10 +56,16 @@ export const GameDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSlots(ITEM_SLOTS);
       setCategories(ITEM_CATEGORIES);
       
+      // Cleanup old keys
       localStorage.removeItem('omnistat_config_stats_v16');
       localStorage.removeItem('omnistat_config_entities_v16');
       localStorage.removeItem('omnistat_config_slots_v16');
       localStorage.removeItem('omnistat_config_categories_v16');
+      
+      localStorage.removeItem('omnistat_config_stats_v17');
+      localStorage.removeItem('omnistat_config_entities_v17');
+      localStorage.removeItem('omnistat_config_slots_v17');
+      localStorage.removeItem('omnistat_config_categories_v17');
       localStorage.removeItem('omnistat_storage_v2');
       
       window.location.reload();

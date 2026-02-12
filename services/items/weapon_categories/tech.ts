@@ -18,5 +18,13 @@ export const TECH_WEAPONS: Entity[] = [
     modifiers: [
         { id: 't_def_vit', type: ModifierType.FLAT, targetStatKey: 'vit', value: '50 * turret_mult' }
     ]
+  },
+  {
+    id: 'sabre_mecanique', type: EntityType.ITEM, name: 'Sabre mécanique',
+    slotId: 'weapon_any', categoryId: 'weapon', subCategory: 'Armes technologiques', equipmentCost: 1,
+    goldCost: 125,
+    modifiers: [
+        { id: 'sm_dmg', type: ModifierType.FLAT, targetStatKey: 'dmg', value: '110' }
+    ]
   }
 ];

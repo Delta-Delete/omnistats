@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, ChevronDown, X, Layers, Anvil, Hammer, Coins, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { ItemSlot, ItemCategory, Entity, StatDefinition, Rarity } from '../../types';
+import { Search, Filter, ChevronDown, X, Layers, Anvil, Hammer, Coins, ArrowDown, ArrowUp, ArrowUpDown, Ban } from 'lucide-react';
+import { ItemSlot, ItemCategory, Entity, StatDefinition, Rarity, EntityType } from '../../types';
 import { ItemPickerCard } from './picker/ItemPickerCard';
 
 const CLASS_RESTRICTED_SUB_CATEGORIES: Record<string, string[]> = {
@@ -10,13 +10,23 @@ const CLASS_RESTRICTED_SUB_CATEGORIES: Record<string, string[]> = {
     'Bottes technologiques': ['technophiles'],
     'Armes technologiques': ['technophiles'],
     'Boucliers technologiques': ['technophiles'],
+    
     'Chapeau': ['arlequins'],
     'Costume': ['arlequins'],
+    'Decks': ['arlequins'], // Restriction ajoutée pour les Decks
+
     'Capuche': ['corrompu'],
     'Manteau': ['corrompu'],
     'Bottes de Corrompus': ['corrompu'],
+    
     'Équipement sacré': ['paladins'], 
     'Armes sacrées': ['conjurateurs'],
+
+    // Restrictions ajoutées pour les Instruments (Virtuoses)
+    'Instrument (Vent)': ['virtuoses'],
+    'Instrument (Corde)': ['virtuoses'],
+    'Instrument (Percussion)': ['virtuoses'],
+    'Instrument (Multi-type)': ['virtuoses'],
 };
 
 export const ItemPickerModal: React.FC<{
@@ -52,8 +62,65 @@ export const ItemPickerModal: React.FC<{
         return allowedClasses.includes(classId || '');
     };
 
+    // --- LOGIQUE ARLEQUIN : UNICITÉ STRICTE & FUSION ---
+    const arlequinForbiddenNames = useMemo(() => {
+        if (context.classId !== 'arlequins') return new Set<string>();
+
+        const forbidden = new Set<string>();
+        
+        // Récupérer les IDs d'armes équipés (context.weaponSlots contient les IDs virtuels si boostés, ou réels)
+        const equippedIds: string[] = context.weaponSlots || [];
+        
+        // Helper pour nettoyer le nom (enlever " (Carte Secrète)" ou autres suffixes ajoutés par le moteur)
+        const cleanName = (name: string) => name.replace(' (Carte Secrète)', '').replace(' (Boost Carte Secrète)', '').trim();
+
+        // 1. Lister les noms des objets déjà équipés (sauf celui qu'on remplace)
+        equippedIds.forEach(id => {
+            if (id === currentId) return; // On ignore l'objet qu'on est en train de changer
+            
+            // L'ID peut être virtuel (ex: deck_id_secret_boosted), il faut le trouver dans allItems ou context.finalEntities ?
+            // Le builder passe "allItems" qui contient les items de base et les customs créés.
+            // MAIS il ne contient pas les items virtuels générés par le moteur (upgrades, secret card).
+            // Astuce : context.equippedItems / weaponSlots contiennent les IDs utilisés.
+            // Si c'est un ID virtuel, il contient l'ID de base. Ex: "mon_item_upgraded_..."
+            
+            // Tentative de retrouver l'item de base via l'ID (en nettoyant les suffixes)
+            const baseId = id.split('_upgraded_')[0].split('_secret_')[0];
+            const item = allItems.find(i => i.id === baseId) || allItems.find(i => i.id === id); // Fallback
+
+            if (item) {
+                forbidden.add(cleanName(item.name));
+
+                // 2. Si l'objet équipé est une FUSION, on interdit aussi ses ingrédients
+                if (item.description && item.description.startsWith('Fusion:')) {
+                    // Format attendu: "Fusion: NomA + NomB"
+                    const ingredientsStr = item.description.substring(8); // Remove "Fusion: "
+                    const ingredients = ingredientsStr.split(' + ').map(s => s.trim());
+                    ingredients.forEach(ing => forbidden.add(ing));
+                }
+            }
+        });
+
+        return forbidden;
+    }, [context.classId, context.weaponSlots, currentId, allItems]);
+
     const filteredItems = useMemo(() => {
         let result = allItems.filter(item => {
+            // Check Forbidden Names (Arlequin Logic)
+            if (context.classId === 'arlequins') {
+                // Cas 1: L'objet lui-même est interdit (déjà équipé)
+                if (arlequinForbiddenNames.has(item.name)) return false;
+
+                // Cas 2: L'objet est une fusion contenant un ingrédient interdit (déjà équipé en base)
+                if (item.description && item.description.startsWith('Fusion:')) {
+                    const ingredientsStr = item.description.substring(8);
+                    const ingredients = ingredientsStr.split(' + ').map(s => s.trim());
+                    if (ingredients.some(ing => arlequinForbiddenNames.has(ing))) {
+                        return false;
+                    }
+                }
+            }
+
             if (!isSubCategoryAllowed(item.subCategory, context.classId)) return false;
 
             if (slot.id === 'tetrachire_weapon') {
@@ -123,7 +190,7 @@ export const ItemPickerModal: React.FC<{
         }
 
         return result;
-    }, [allItems, acceptedCategories, slot, search, catFilter, rarityFilter, tungstenFilter, craftableFilter, costFilter, priceSort, context.classId, context.racialCompetenceActive]);
+    }, [allItems, acceptedCategories, slot, search, catFilter, rarityFilter, tungstenFilter, craftableFilter, costFilter, priceSort, context.classId, context.racialCompetenceActive, arlequinForbiddenNames]);
 
     const relevantSubCategories = useMemo(() => {
         if (slot.id === 'tetrachire_weapon') {
@@ -169,14 +236,21 @@ export const ItemPickerModal: React.FC<{
                         <h3 className="text-xl font-bold text-white flex items-center tracking-wide font-perrigord">
                             <Search size={22} className="mr-3 text-indigo-400" /> {slot.name}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-1 flex items-center">
-                            Sélectionnez un objet pour l'équiper.
-                            {currentItem && (
-                                <span className="ml-2 pl-2 border-l border-slate-700 text-slate-400">
-                                    Actuel : <span className="text-indigo-300 font-bold">{currentItem.name}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-slate-500">
+                                Sélectionnez un objet pour l'équiper.
+                                {currentItem && (
+                                    <span className="ml-2 pl-2 border-l border-slate-700 text-slate-400">
+                                        Actuel : <span className="text-indigo-300 font-bold">{currentItem.name}</span>
+                                    </span>
+                                )}
+                            </p>
+                            {context.classId === 'arlequins' && slot.acceptedCategories?.includes('weapon') && (
+                                <span className="flex items-center text-[9px] bg-red-900/30 text-red-300 px-2 py-0.5 rounded border border-red-500/30 font-bold">
+                                    <Ban size={10} className="mr-1"/> Doublons Interdits
                                 </span>
                             )}
-                        </p>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-3">
                         <button onClick={() => onSelect('none')} className="flex items-center px-4 py-2 rounded-lg border border-red-900/50 bg-red-900/10 text-red-400 hover:bg-red-900/30 transition-colors text-xs font-bold uppercase hover:shadow-[0_0_15px_rgba(220,38,38,0.3)]">

@@ -4,7 +4,8 @@ import { Lock, Trash2 } from 'lucide-react';
 import { Entity, ItemConfigValues } from '../../../types';
 import { CollapsibleCard } from '../../ui/Card';
 import { ItemConfigControl } from './ItemConfigControl';
-import { toFantasyTitle, calculateEnhancedStats, getStatConfig } from '../utils';
+import { toFantasyTitle, getStatConfig } from '../utils';
+import { calculateEnhancedStats } from '../../../services/preview';
 import { checkCondition } from '../../../services/engine';
 
 interface InventoryBagProps {

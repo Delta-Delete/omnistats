@@ -30,7 +30,7 @@ export const MAGIQUES: Entity[] = [
       { id: 'c_ani_spd', type: ModifierType.FLAT, targetStatKey: 'spd', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
       { id: 'c_ani_dmg', type: ModifierType.FLAT, targetStatKey: 'dmg', value: '20 + (level - 4 - Math.floor(level / 10)) * 10', condition: 'level >= 5' },
       
-      // Restriction: 2 Slots
+      // Restriction: 2 Slots (Base 3 - 1 = 2)
       { id: 'c_ani_cap', type: ModifierType.FLAT, targetStatKey: 'weapon_cap', value: '-1', name: 'Restriction Armement (2 Slots)' },
 
       // CALCULATION LOGIC (Still needed to compute the count based on level)

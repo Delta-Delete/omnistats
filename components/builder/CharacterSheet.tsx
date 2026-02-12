@@ -3,7 +3,9 @@ import React, { useState, useMemo } from 'react';
 import { Activity, Sword, Zap, Crosshair, Eye, EyeOff, Info, Scroll, Users, BarChart3, Radar, Coins, Heart } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar as RechartsRadar } from 'recharts';
 import { CalculationResult, StatDefinition, StatResult, StatDetail, EntityType, Entity } from '../../types';
-import { getStatStyle, getTagLabel, getTagColor, AnimatedCounter, CollapsibleDescription, toFantasyTitle } from './utils';
+import { getStatStyle, getTagLabel, getTagColor, getStatConfig, toFantasyTitle } from './utils';
+import { AnimatedCounter } from '../ui/AnimatedCounter';
+import { CollapsibleDescription } from '../ui/RichText';
 
 interface DescriptionItem {
     id: string;
@@ -26,7 +28,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
 
     // --- Computed Visual Data ---
     const chartStats = useMemo(() => stats.filter(s => ['vit', 'spd', 'dmg'].includes(s.key)), [stats]);
-    const chartLabelMap: Record<string, string> = { vit: 'HP', spd: 'SPD', dmg: 'DMG' };
     
     // Calculate Max values for scaling (dynamic soft caps for visualization)
     const maxValues = useMemo(() => {
@@ -39,7 +40,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
 
     const chartData = useMemo(() => {
         return chartStats.map(s => ({ 
-            subject: chartLabelMap[s.key] || s.label, 
+            subject: getStatConfig(s.key).shortLabel, // Use shared config for labels
             A: (result.stats[s.key] as StatResult | undefined)?.finalValue || 0, 
             fullMark: maxValues[s.key as keyof typeof maxValues] || 100 
         }));
@@ -99,11 +100,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ result, stats, a
         const flat = stat.perTurn || 0;
         const pct = stat.perTurnPercent || 0;
         if (flat === 0 && pct === 0) return null;
+        
         return (
             <span className={`${colorClass} font-bold ml-1 text-[9px]`}>
-                {flat > 0 ? `+${flat}` : ''}
-                {flat > 0 && pct > 0 ? ' & ' : ''}
-                {pct > 0 ? `+${pct}%` : ''}
+                {flat !== 0 ? (flat > 0 ? `+${flat}` : `${flat}`) : ''}
+                {flat !== 0 && pct !== 0 ? ' & ' : ''}
+                {pct !== 0 ? (pct > 0 ? `+${pct}%` : `${pct}%`) : ''}
                 /tr
             </span>
         );

@@ -1,12 +1,14 @@
-
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Flag, Package, Zap, Users, Info, Shield, Sword, Activity, Skull, Music, Lock, Globe, EyeOff } from 'lucide-react';
-import { PlayerSelection, Entity, EntityType } from '../../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Flag, Package, Zap, Users, Info, Shield, Music, Activity, Skull } from 'lucide-react';
+import { PlayerSelection, Entity } from '../../types';
+import { useStatusLogic } from '../../hooks/useStatusLogic';
 
 interface StatusWidgetProps {
     selection: PlayerSelection;
     activeEntities: Entity[];
     onClick: () => void;
+    context?: any;
+    setSelection?: any; 
 }
 
 // Helper pour les icônes de buffs
@@ -20,7 +22,7 @@ const getBuffIcon = (label: string) => {
     return <Zap size={16} />;
 };
 
-export const StatusWidget: React.FC<StatusWidgetProps> = ({ selection, activeEntities, onClick }) => {
+export const StatusWidget: React.FC<StatusWidgetProps> = ({ selection, activeEntities, onClick, context, setSelection }) => {
     
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
     const [hasNotification, setHasNotification] = useState(false);
@@ -28,81 +30,25 @@ export const StatusWidget: React.FC<StatusWidgetProps> = ({ selection, activeEnt
     // Ref pour stocker l'empreinte précédente des données et détecter les changements
     const prevDataHash = useRef<string>('');
 
-    const data = useMemo(() => {
-        // A. Identity
-        const faction = activeEntities.find(e => e.type === EntityType.FACTION);
-        const guilds = activeEntities.filter(e => e.type === EntityType.GUILD);
+    // Utilisation du Hook Centralisé
+    const { widgetData } = useStatusLogic({ 
+        selection, 
+        setSelection: setSelection || (() => {}), 
+        activeEntities, 
+        context: context || {} 
+    });
 
-        // B. Sets
-        const sets: { name: string, count: number, active: boolean, icon?: string }[] = [];
-        const setEntities = activeEntities.filter(e => e.type === EntityType.ITEM_SET);
-        const factionLegacySets = activeEntities.filter(e => e.type === EntityType.FACTION && e.modifiers && e.modifiers.length > 0);
-        
-        [...setEntities, ...factionLegacySets].forEach(set => {
-            const isLegacy = set.type === EntityType.FACTION;
-            const count = activeEntities.filter(e => e.type === EntityType.ITEM && (isLegacy ? e.factionId === set.id : e.setId === set.id)).length;
-            if (count > 0) {
-                const isActive = count >= 2; 
-                sets.push({ name: set.name.replace('Set : ', '').replace('Panoplie ', ''), count, active: isActive, icon: set.imageUrl });
-            }
-        });
+    const data = widgetData;
 
-        // C. Buffs / Toggles
-        const buffs: { id: string, label: string, active: boolean }[] = [];
-        let availableToggleCount = 0; // Compteur pour savoir si on doit afficher le widget même si inactif
-        const seenToggles = new Set<string>();
-
-        activeEntities.forEach(ent => {
-            (ent.modifiers || []).forEach(mod => {
-                if (mod.toggleId) {
-                    // Exclusions : Mécaniques de classes gérées ailleurs (Panneau Identité)
-                    if (mod.toggleGroup === 'arlequin_card') return; 
-                    if (mod.toggleGroup === 'career_artist_deck') return; 
-                    if (mod.toggleGroup === 'thanato_organ') return; 
-                    if (mod.toggleGroup === 'pugilist_stance') return; 
-                    if (mod.toggleId === 'guild_rank_bonus') return;
-                    
-                    if (!seenToggles.has(mod.toggleId)) {
-                        seenToggles.add(mod.toggleId);
-                        availableToggleCount++; // Il y a un toggle disponible
-
-                        let label = mod.toggleName || mod.toggleId;
-                        label = label.replace('Posture ', '').replace('Inspiration ', '');
-                        
-                        // On n'ajoute à la liste visuelle (icônes) que si c'est ACTIF
-                        if (selection.toggles[mod.toggleId]) {
-                            buffs.push({ id: mod.toggleId, label, active: true });
-                        }
-                    }
-                }
-            });
-        });
-
-        // Sliders as Buffs (Comptent comme actifs et disponibles)
-        if ((selection.sliderValues?.['rage_stacks'] || 0) > 0) {
-             buffs.push({ id: 'rage', label: `Rage x${selection.sliderValues!['rage_stacks']}`, active: true });
-             availableToggleCount++;
-        }
-        if ((selection.sliderValues?.['sans_peur_stacks'] || 0) > 0) {
-             buffs.push({ id: 'peur', label: `Sans Peur x${selection.sliderValues!['sans_peur_stacks']}`, active: true });
-             availableToggleCount++;
-        }
-        if ((selection.sliderValues?.['colere_vive_stacks'] || 0) > 0) {
-             buffs.push({ id: 'colere', label: `Colère x${selection.sliderValues!['colere_vive_stacks']}`, active: true });
-             availableToggleCount++;
-        }
-
-        return { faction, guilds, sets, buffs, availableToggleCount };
-    }, [activeEntities, selection]);
-
-    // DETECTION DE CHANGEMENTS
+    // DETECTION DE CHANGEMENTS (Notification Visuelle)
     useEffect(() => {
-        // Construction d'une signature unique basée sur le contenu important
+        // Construction d'une signature unique basée sur le contenu important pour le HUD
         const factionPart = data.faction?.id || '';
         const guildsPart = data.guilds.map(g => g.id).sort().join(',');
         const setsPart = data.sets.map(s => `${s.name}:${s.count}:${s.active}`).sort().join(',');
         const buffsPart = data.buffs.map(b => `${b.id}:${b.active}`).sort().join(',');
-        // On inclut aussi les entités qui apportent des Invocations (même si non affichées en icône)
+        
+        // On inclut aussi les entités qui apportent des Invocations (souvent invisible dans le widget mais important)
         const summonProviders = activeEntities.filter(e => (e.summons && e.summons.length > 0) || e.summonConfig).map(e => e.id).sort().join(',');
 
         const currentHash = `${factionPart}|${guildsPart}|${setsPart}|${buffsPart}|${summonProviders}`;
@@ -110,13 +56,15 @@ export const StatusWidget: React.FC<StatusWidgetProps> = ({ selection, activeEnt
         // Si ce n'est pas le premier rendu (prevDataHash non vide) et que ça a changé
         if (prevDataHash.current !== '' && prevDataHash.current !== currentHash) {
             setHasNotification(true);
-            // Auto-stop après 4 secondes pour ne pas être gênant
             const timer = setTimeout(() => setHasNotification(false), 4000);
             return () => clearTimeout(timer);
         }
 
         prevDataHash.current = currentHash;
     }, [data, activeEntities]);
+
+    // Masquer le widget s'il est vide (optionnel, ici on le garde pour l'accès rapide au Panel)
+    const isEmpty = !data.faction && data.sets.length === 0 && data.buffs.length === 0 && data.guilds.length === 0;
 
     return (
         <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3">
@@ -158,7 +106,7 @@ export const StatusWidget: React.FC<StatusWidgetProps> = ({ selection, activeEnt
                         className={`relative w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center border transition-all cursor-help ${set.active ? 'bg-emerald-900/30 border-emerald-500/50' : 'bg-slate-900 border-slate-700 grayscale opacity-70'}`}
                         onMouseEnter={() => setHoveredItem(`${set.name} (${set.count} pcs)`)}
                         onMouseLeave={() => setHoveredItem(null)}
-                        onClick={onClick} // Open full panel on click
+                        onClick={onClick}
                     >
                         {set.icon ? (
                             <img src={set.icon} className="w-6 h-6 sm:w-10 sm:h-10 object-contain" alt="" />

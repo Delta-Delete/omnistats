@@ -340,11 +340,12 @@ export const ArtistPanel: React.FC<CareerSubPanelProps> = ({ selection, setSelec
         { val: 1, label: 'Réputé', bonus: '7.5%', icon: Award, color: 'text-amber-400' },
         { val: 2, label: 'Célèbre', bonus: '10%', icon: Crown, color: 'text-yellow-400' },
     ];
+    // ORDER CHANGED: Spade, Club, Heart, Diamond, Royal
     const cards = [
         { id: 'career_card_spade', label: 'Pique', icon: '♠', color: 'text-slate-300', bg: 'bg-slate-800', bonus: `+${baseBonus}% Dmg` },
         { id: 'career_card_club', label: 'Trèfle', icon: '♣', color: 'text-emerald-400', bg: 'bg-slate-900', bonus: `+${baseBonus}% Spd` },
-        { id: 'career_card_diamond', label: 'Carreau', icon: '♦', color: 'text-amber-400', bg: 'bg-slate-900', bonus: `+${baseBonus}% Stats` },
         { id: 'career_card_heart', label: 'Cœur', icon: '♥', color: 'text-rose-500', bg: 'bg-slate-900', bonus: `+${baseBonus}% Vit` },
+        { id: 'career_card_diamond', label: 'Carreau', icon: '♦', color: 'text-amber-400', bg: 'bg-slate-900', bonus: `+${baseBonus}% Stats` },
         { id: 'career_card_royal', label: 'Royal', icon: '★', color: 'text-yellow-400', bg: 'bg-indigo-950', bonus: `+${baseBonus * 2}% Stats` },
     ];
 

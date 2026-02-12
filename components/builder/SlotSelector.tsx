@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, RefreshCw, Hammer, Coins, Ban, AlertTriangle, Sword, Shield, Feather, Anvil, PawPrint, Zap, User, Music } from 'lucide-react';
 import { ItemSlot, Entity, Modifier, EntityType, ModifierType } from '../../types';
-import { getStatConfig, calculateEnhancedStats, getRarityStyle } from './utils';
+import { getStatConfig, getRarityStyle } from './utils';
+import { calculateEnhancedStats } from '../../services/preview';
 import { checkCondition } from '../../services/engine';
 import { ItemTooltip } from './ItemTooltip';
 
@@ -242,7 +243,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({ slot, allItems, sele
                                             <div key={idx} className="flex items-center gap-1 bg-slate-950/50 px-1.5 py-0.5 rounded border border-slate-800">
                                                 <Icon size={10} className={statConfig.color} />
                                                 <span className={`text-[10px] font-mono font-bold ${statConfig.color}`}>
-                                                    {baseVal > 0 ? '+' : ''}{baseVal}{isPercent && '%'}
+                                                    {baseVal > 0 ? '+' : ''}{baseVal}{isPercent && '%'}{m.isPerTurn && '/tr'}
                                                     {showBonus && (
                                                         <span className="text-emerald-400 ml-0.5">
                                                             (+{Math.ceil(totalBonus)})

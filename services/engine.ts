@@ -4,7 +4,7 @@ import { StatDefinition, Entity, Modifier, ModifierType, StatResult, Calculation
 import { STATS } from './constants';
 
 export interface EvaluationContext {
-// ... (Interface EvaluationContext inchangée)
+// ... (Interface EvaluationContext unchanged)
   level: number;
   raceId?: string;
   subRaceId?: string;
@@ -17,6 +17,7 @@ export interface EvaluationContext {
   soul_count?: number;
   pass_index?: number;
   is_final_pass?: boolean;
+  unit_scale?: number;
   [key: string]: any; 
 }
 
@@ -29,15 +30,13 @@ const clearCacheIfNeeded = () => {
     }
 };
 
-// Mode debug global (peut être activé via la console ou l'admin)
+// Mode debug global
 let DEBUG_FORMULAS = false;
 export const setEngineDebug = (val: boolean) => { DEBUG_FORMULAS = val; };
 
 export const evaluateFormula = (formula: string, context: EvaluationContext): number => {
-// ... (evaluateFormula inchangé)
+// ... (evaluateFormula unchanged)
   if (!formula) return 0;
-  
-  // Optimisation: Si c'est juste un nombre, on le retourne direct
   const numeric = Number(formula);
   if (!isNaN(numeric)) return numeric;
 
@@ -62,21 +61,15 @@ export const evaluateFormula = (formula: string, context: EvaluationContext): nu
   } catch (e) {
     if (DEBUG_FORMULAS) {
         console.error(`[Engine] Error evaluating formula: "${formula}"`, e);
-        console.debug('Context was:', context);
     }
     return 0;
   }
 };
 
-/**
- * Fonction utilitaire pour tester la validité syntaxique d'une formule sans l'exécuter avec des vraies données.
- * Utilisé par l'Admin Panel.
- */
 export const validateFormulaSyntax = (formula: string): boolean => {
-// ... (validateFormulaSyntax inchangé)
+// ... (validateFormulaSyntax unchanged)
     if (!formula || !isNaN(Number(formula))) return true;
     try {
-        // On essaie de créer la fonction. Si syntaxe invalide (ex: parenthèse manquante), ça throw.
         new Function('context', `return (${formula});`);
         return true;
     } catch (e) {
@@ -84,23 +77,14 @@ export const validateFormulaSyntax = (formula: string): boolean => {
     }
 };
 
-/**
- * Analyse profonde des références dans une formule pour le diagnostic Admin.
- * Retourne les tokens inconnus.
- */
 export const analyzeFormulaReferences = (formula: string, validKeywords: Set<string>): string[] => {
-// ... (analyzeFormulaReferences inchangé)
+// ... (analyzeFormulaReferences unchanged)
     if (!formula || !isNaN(Number(formula))) return [];
-    
-    // Regex pour extraire les identifiants (mots qui ne sont pas des nombres)
-    // On exclut les chaînes entre quotes simples ou doubles pour ne pas scanner les IDs passés en argument
     const cleanFormula = formula.replace(/['"][^'"]*['"]/g, ''); 
     const tokens = cleanFormula.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
-    
     const errors: string[] = [];
     tokens.forEach(token => {
         if (!validKeywords.has(token)) {
-            // Ignore JS keywords (Added 'typeof')
             if (['Math', 'min', 'max', 'floor', 'ceil', 'round', 'abs', 'true', 'false', 'undefined', 'null', 'typeof'].includes(token)) return;
             errors.push(token);
         }
@@ -109,7 +93,7 @@ export const analyzeFormulaReferences = (formula: string, validKeywords: Set<str
 };
 
 export const checkCondition = (condition: string | undefined, context: EvaluationContext): boolean => {
-// ... (checkCondition inchangé)
+// ... (checkCondition unchanged)
   if (!condition || condition.trim() === '') return true;
   try {
     const safeContext = context || {};
@@ -133,22 +117,14 @@ export const checkCondition = (condition: string | undefined, context: Evaluatio
   }
 };
 
-/**
- * Calcule les stats d'un objet unique pour l'affichage (Tooltip/Picker).
- * Remplace la logique dupliquée dans utils.tsx.
- */
 export const resolveItemPreview = (
     item: Entity, 
     modifier: Modifier, 
     context: any, 
     upgradeBonus: number = 0
 ): { enhanced: number, base: number } => {
-// ... (resolveItemPreview inchangé)
-    
-    // 1. Calcul Valeur de Base (Sans contexte global si possible, ou avec contexte complet)
+// ... (resolveItemPreview unchanged)
     let rawBaseValue = 0;
-    
-    // Contexte "Nu" pour essayer d'obtenir la stat de base de l'objet sans les boosts externes
     const strippedContext = {
         ...context,
         weapon_effect_mult: 1,      
@@ -161,64 +137,46 @@ export const resolveItemPreview = (
         enchantment_mult: 1
     };
 
-    // Gestion du pattern "X * variable" pour les upgrades
     const multPattern = /^(\d+)\s*\*\s*([a-zA-Z_0-9]+)$/;
     const match = modifier.value.match(multPattern);
 
     if (match && upgradeBonus > 0) {
-        // Cas spécial: "10 * mult" devient "(10 + upgrade) * mult"
         const baseVal = parseFloat(match[1]);
         const variable = match[2];
         const multiplier = context[variable] || 1;
-        // On applique le bonus au nombre de base avant multiplication
         return {
             enhanced: Math.ceil((baseVal + upgradeBonus) * multiplier),
-            base: Math.ceil(baseVal * multiplier) // Base sans upgrade
+            base: Math.ceil(baseVal * multiplier)
         };
     }
 
-    // Cas standard : Évaluation directe via le moteur
     try {
-        // Valeur "Base" (sans boosts externes massifs)
         rawBaseValue = Math.ceil(evaluateFormula(modifier.value, strippedContext));
-        
-        // Si upgrade (forge), on l'ajoute au flat
         if (modifier.type === ModifierType.FLAT) {
             rawBaseValue += upgradeBonus;
         }
     } catch (e) { rawBaseValue = 0; }
 
-    // 2. Calcul Valeur "Enhancée" (Avec contexte complet)
     let enhancedValue = rawBaseValue;
     try {
-        // On ré-évalue avec le contexte complet pour avoir les multiplicateurs actifs
         let valWithContext = Math.ceil(evaluateFormula(modifier.value, context));
-        
         if (match && upgradeBonus > 0) {
              const baseVal = parseFloat(match[1]);
              const variable = match[2];
              valWithContext = Math.ceil((baseVal + upgradeBonus) * (context[variable] || 1));
         } else if (modifier.type === ModifierType.FLAT) {
-             // Si c'est une formule complexe, on assume que l'upgrade s'ajoute à la fin
-             // Note: Si la formule contient déjà des multiplicateurs (ex: 10 * booster), 
-             // ajouter l'upgrade après est correct pour un bonus "Forge".
              valWithContext += upgradeBonus;
         }
-        
         enhancedValue = valWithContext;
     } catch (e) { enhancedValue = rawBaseValue; }
 
-    return {
-        base: rawBaseValue,
-        enhanced: enhancedValue
-    };
+    return { base: rawBaseValue, enhanced: enhancedValue };
 };
 
 const flattenItemConfigs = (configs: Record<string, any> | undefined): Record<string, number> => {
-// ... (flattenItemConfigs inchangé)
+// ... (flattenItemConfigs unchanged)
     const flattened: Record<string, number> = {};
     if (!configs) return flattened;
-    
     Object.entries(configs).forEach(([itemId, values]) => {
         if (values.val !== undefined) flattened[`config_${itemId}_val`] = values.val;
         if (values.vit !== undefined) flattened[`config_${itemId}_vit`] = values.vit;
@@ -234,7 +192,7 @@ const executePass = (
     contextParams: any, 
     extraItemIds: string[] = []
 ): { results: Record<string, StatResult>, modifierResults: Record<string, number>, evalContext: EvaluationContext } => {
-    
+    // ... (executePass unchanged - keeping logic intact)
     const results: Record<string, StatResult> = {};
     const modifierResults: Record<string, number> = {}; 
     const currentStatValues: Record<string, number> = {}; 
@@ -273,7 +231,6 @@ const executePass = (
     const equippedInstances = allItemIds.map(id => safeEntities.find(e => e.id === id)).filter(Boolean) as Entity[];
 
     const isMatch = (item: Entity, target: string) => {
-    // ... (isMatch inchangé)
         if (!item) return false;
         const targetLower = target.toLowerCase();
         if (item.categoryId?.toLowerCase() === targetLower) return true;
@@ -293,17 +250,13 @@ const executePass = (
     };
 
     const getHelperContext = () => {
-    // ... (getHelperContext inchangé)
         const dynamicStats: Record<string, number> = {};
         Object.keys(results).forEach(k => {
             dynamicStats[k] = results[k].finalValue;
-            // Also inject base values here for item stat calculations if needed
             dynamicStats[`base_${k}`] = results[k].base;
         });
-
         const sliderValues = contextParams.sliderValues || {};
         const itemConfigValues = flattenItemConfigs(contextParams.itemConfigs);
-
         return {
             ...currentStatValues, 
             ...dynamicStats,      
@@ -317,7 +270,6 @@ const executePass = (
     };
 
     const utils = {
-    // ... (utils inchangé)
         bestItemStat: (categoryOrSub: string, statKey: string): number => {
             const candidates = equippedInstances.filter(item => isMatch(item, categoryOrSub));
             if (candidates.length === 0) return 0;
@@ -336,7 +288,6 @@ const executePass = (
             let total = 0;
             const candidates = equippedInstances.filter(item => isMatch(item, categoryOrSub));
             const ctx = getHelperContext();
-            
             candidates.forEach(item => {
                 (item.modifiers || []).filter(m => m.targetStatKey === statKey && m.type === ModifierType.FLAT).forEach(m => {
                         total += evaluateFormula(m.value, ctx as any);
@@ -349,7 +300,6 @@ const executePass = (
             const candidates = equippedInstances.filter(item => isMatch(item, categoryOrSub));
             const ctx = getHelperContext();
             const reductionActive = (ctx[STATS.REDUCE_HEAVY_COST] || 0) > 0;
-
             candidates.forEach(item => {
                 let cost = item.equipmentCost || 0;
                 if (reductionActive && cost === 2) cost = 1;
@@ -362,7 +312,6 @@ const executePass = (
             const candidates = equippedInstances.filter(item => isMatch(item, categoryOrSub));
             const ctx = getHelperContext();
             const reductionActive = (ctx[STATS.REDUCE_HEAVY_COST] || 0) > 0;
-
             candidates.forEach(item => {
                 let cost = item.equipmentCost || 0;
                 if (reductionActive && cost === 2) cost = 1;
@@ -430,7 +379,6 @@ const executePass = (
     };
 
     const getPriority = (type: string) => {
-    // ... (getPriority inchangé)
         switch(type) {
             case 'GLOBAL_RULE': return 0; 
             case 'RACE': return 0;
@@ -447,13 +395,13 @@ const executePass = (
 
     const safeToggles = contextParams.toggles || {};
     const PASSES = 3;
+    const unitScale = contextParams.unit_scale || 1;
 
     for (let pass = 0; pass < PASSES; pass++) {
-        // INJECTION DES VARIABLES DANS LE CONTEXTE D'ÉVALUATION
         Object.keys(results).forEach(key => { 
             evalContext[key] = results[key].finalValue;
-            // NEW: Inject base values (Race + Class + Global Base)
             evalContext[`base_${key}`] = results[key].base;
+            evalContext[`local_base_${key}`] = results[key].base * unitScale;
         });
         
         evalContext.pass_index = pass;
@@ -503,7 +451,6 @@ const executePass = (
             let percentMultiPreSum = 0;
             let finalAdditivePercentSum = 0;
             let altFlatSum = 0;
-            // CHANGEMENT ICI : altPercentSum au lieu de altPercentProd
             let altPercentSum = 0; 
             
             const currentPassDetailsBase: StatDetail[] = [];
@@ -517,10 +464,7 @@ const executePass = (
                 modifierResults[override.mod.id] = val;
                 res.finalValue = val;
                 passTrace.push(`ÉCRASE par ${override.source}: = ${val}`);
-                
-                // Add trace immediately for EVERY pass to allow debugging of evolution
                 res.trace.push(...passTrace);
-                
                 if (pass === PASSES - 1) {
                     res.detailedBase = [{ source: override.source, value: val }];
                     res.detailedFlat = [];
@@ -531,7 +475,6 @@ const executePass = (
             mods.filter(m => m.mod.type === ModifierType.FLAT).forEach(m => {
                 const val = evaluateFormula(m.mod.value, evalContext);
                 modifierResults[m.mod.id] = val;
-                
                 if (m.mod.isPerTurn) {
                     perTurnSum += val;
                     passTrace.push(`GAIN/TOUR [${m.source}]: +${val}/tr`);
@@ -584,7 +527,6 @@ const executePass = (
             mods.filter(m => m.mod.type === ModifierType.ALT_FLAT).forEach(m => {
                 const val = evaluateFormula(m.mod.value, evalContext);
                 modifierResults[m.mod.id] = val;
-                
                 if (m.mod.isPerTurn) {
                     perTurnSum += val; 
                     passTrace.push(`GAIN ALT/TOUR [${m.source}]: +${val}/tr`);
@@ -594,11 +536,10 @@ const executePass = (
                 }
             });
             
-            // CHANGEMENT MAJEUR : LOGIQUE ADDITIVE POUR ALT_PERCENT
             mods.filter(m => m.mod.type === ModifierType.ALT_PERCENT).forEach(m => {
                 const val = evaluateFormula(m.mod.value, evalContext);
                 modifierResults[m.mod.id] = val;
-                altPercentSum += val; // On additionne les pourcentages au lieu de multiplier les facteurs
+                altPercentSum += val;
                 passTrace.push(`ALT PERC [${m.source}]: ${val > 0 ? '+' : ''}${val}%`);
             });
 
@@ -607,11 +548,8 @@ const executePass = (
             const withPreMulti = withPercentAdd * (1 + (percentMultiPreSum / 100));
             const withFinalAdditive = withPreMulti * (1 + (finalAdditivePercentSum / 100));
             const withAltFlat = withFinalAdditive + altFlatSum;
-            
-            // APPLICATION DU TOTAL ALT PERCENT
             const final = withAltFlat * (1 + (altPercentSum / 100));
 
-            // BREAKDOWN UPDATE: altPercent est maintenant la somme des %
             res.breakdown = { base: inherentBase, flat: flatSum, percentAdd: percentAddSum, percentMultiPre: percentMultiPreSum, finalAdditivePercent: finalAdditivePercentSum, altFlat: altFlatSum, altPercent: altPercentSum };
             res.base = inherentBase;
             res.perTurn = perTurnSum;
@@ -628,7 +566,6 @@ const executePass = (
                 res.finalValue = Math.ceil(clamped);
             }
             
-            // PUSH TRACE FOR THIS PASS (Every pass is logged now for debugging)
             res.trace.push(...passTrace);
 
             if (pass === PASSES - 1) {
@@ -643,39 +580,34 @@ const executePass = (
     return { results, modifierResults, evalContext };
 }
 
-// ... rest of file (calculateStats, etc.) ...
-// Definition of the Processor Type
 type EntityProcessor = (entities: Entity[], safeContext: any, preCalcContext: any) => { entities: Entity[], virtualIds: string[] };
 
 export const calculateStats = (
   statDefs: StatDefinition[],
-// ... (reste de calculateStats inchangé)
   entities: Entity[],
   contextParams: any,
   virtualItemProcessors: EntityProcessor[] = [],
-  summonProcessors: SummonProcessor[] = [] // INJECTED RULES
-): CalculationResult => {
+  summonProcessors: SummonProcessor[] = []
+): CalculationResult & { finalEntities: Entity[] } => {
   const start = performance.now();
   
-  // FIX: Deep copy of equippedItems to prevent mutation by virtual processors affecting React state
   const safeContext = {
       ...(contextParams || {}),
       weaponSlots: contextParams?.weaponSlots ? [...contextParams.weaponSlots] : [],
       level: contextParams?.level ?? 0,
-      equippedItems: contextParams?.equippedItems ? { ...contextParams.equippedItems } : {}, // DEEP COPY HERE
+      equippedItems: contextParams?.equippedItems ? { ...contextParams.equippedItems } : {},
       partitionSlots: contextParams?.partitionSlots ? [...contextParams.partitionSlots] : [],
       bonusItems: contextParams?.bonusItems ? [...contextParams.bonusItems] : [],
       sealItems: contextParams?.sealItems ? [...contextParams.sealItems] : [],
       specialItems: contextParams?.specialItems ? [...contextParams.specialItems] : [],
-      toggles: contextParams?.toggles ? { ...contextParams.toggles } : {}, // Deep copy toggles
-      sliderValues: contextParams?.sliderValues ? { ...contextParams.sliderValues } : {}, // Deep copy sliders
+      toggles: contextParams?.toggles ? { ...contextParams.toggles } : {},
+      sliderValues: contextParams?.sliderValues ? { ...contextParams.sliderValues } : {},
       soulCount: contextParams?.soulCount || 0,
-      itemConfigs: contextParams?.itemConfigs ? JSON.parse(JSON.stringify(contextParams.itemConfigs)) : {} // DEEP copy config objects
+      itemConfigs: contextParams?.itemConfigs ? JSON.parse(JSON.stringify(contextParams.itemConfigs)) : {}
   };
   
   let activeEntities = [...entities];
   
-  // Pass 0 (Discovery)
   const discoveryPass = executePass(statDefs, activeEntities, safeContext, []);
   
   const preCalcContext: any = { 
@@ -685,23 +617,25 @@ export const calculateStats = (
       ...flattenItemConfigs(safeContext.itemConfigs), 
       ...safeContext,
       ...Object.fromEntries(Object.entries(discoveryPass.results).map(([k, v]) => [k, v.finalValue])),
-      // Inject Base Stats into preCalcContext as well
       ...Object.fromEntries(Object.entries(discoveryPass.results).map(([k, v]) => [`base_${k}`, v.base]))
   };
 
-  // --- GENERATE VIRTUAL ITEMS (USING INJECTED PROCESSORS) ---
+  // --- GENERATE VIRTUAL ITEMS ---
   const allVirtualIds: string[] = [];
   
   virtualItemProcessors.forEach(processor => {
-      // safeContext is modified inside processor (e.g., ID swapped for virtual ID)
-      // Since safeContext.equippedItems is now a copy, the original React state is safe.
-      const { entities: newEnts, virtualIds } = processor(entities, safeContext, preCalcContext);
+      const { entities: newEnts, virtualIds } = processor(activeEntities, safeContext, preCalcContext);
+      // We append virtual items. If they replace existing IDs, the last one in the list wins in 'executePass' lookups?
+      // No, executePass looks up by ID in 'safeEntities'.
+      // If we push a virtual item with same ID as existing item (like 'deckecleon_upgraded'), we must ensure
+      // that safeContext uses the NEW ID.
+      // The processors usually update safeContext directly to point to the new ID.
+      // But we must also add the new entity definition to activeEntities.
       activeEntities = [...activeEntities, ...newEnts];
       allVirtualIds.push(...virtualIds);
   });
   
   // Pass A (Main Calculation)
-  // We use the modified safeContext here (which points to virtual IDs)
   const passA = executePass(statDefs, activeEntities, safeContext, allVirtualIds); 
   
   // Handle Partition Cap Logic
@@ -739,10 +673,8 @@ export const calculateStats = (
 
   const equippedItemIds = new Set(finalContext.itemIds);
   activeEntities.forEach(ent => {
-       // Check for Item/Set Summons
        if ((ent.type === EntityType.ITEM || ent.type === EntityType.ITEM_SET || ent.type === EntityType.BUFF) && !equippedItemIds.has(ent.id)) return;
 
-       // 1. Standard Item Summons
        if (ent.summons && ent.summons.length > 0) {
            ent.summons.forEach(s => {
                if (s.condition && !checkCondition(s.condition, summonContext)) return;
@@ -764,8 +696,6 @@ export const calculateStats = (
            });
        }
 
-       // 2. Dynamic Class Summons (Config-Based)
-       // EXECUTE INJECTED PROCESSORS
        summonProcessors.forEach(processor => {
            const dynamicSummon = processor(ent, summonContext, summonFlatBonus);
            if (dynamicSummon) {
@@ -780,6 +710,8 @@ export const calculateStats = (
     modifierResults: finalResults.modifierResults,
     activeSummons: activeSummons,
     logs: [],
-    executionTime: end - start
+    executionTime: end - start,
+    finalEntities: activeEntities, // RETURN MODIFIED ENTITY LIST
+    evalContext: finalResults.evalContext // Returning evalContext
   };
 };

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Flag, ToggleRight, ToggleLeft, CircleCheck, Circle, Users, Star, Globe, Lock, EyeOff } from 'lucide-react';
 import { PlayerSelection, Entity, EntityType, CalculationResult, ModifierType, ActiveSummon } from '../../../types';
@@ -21,7 +20,7 @@ interface StatusPanelProps {
 
 export const StatusPanel: React.FC<StatusPanelProps> = ({ selection, setSelection, activeEntities, allItems, context, result, activeSummons }) => {
     
-    // Use the custom hook for logic
+    // UTILISATION DU HOOK CENTRALISÉ
     const { 
         activeFactionsDetails, 
         activeGuildsWithToggles, 

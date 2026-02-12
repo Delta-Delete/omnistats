@@ -3,8 +3,10 @@ import React, { useMemo } from 'react';
 import { Package, Unlock, Lock, Scale, Info } from 'lucide-react';
 import { Entity, EntityType, Modifier } from '../../types';
 import { evaluateFormula } from '../../services/engine';
-import { getTagColor, getTagLabel, parseRichText, toFantasyTitle } from './utils';
+import { getTagColor, getTagLabel, toFantasyTitle } from './utils';
+import { parseRichText } from '../ui/RichText';
 import { CollapsibleCard } from '../ui/Card';
+import { processDynamicText } from '../../services/processing'; // IMPORT
 
 interface SetBonusesPanelProps {
     activeEntities: Entity[];
@@ -61,14 +63,9 @@ export const SetBonusesPanel: React.FC<SetBonusesPanelProps> = ({ activeEntities
         return countMatch ? parseInt(countMatch[1], 10) : 0;
     };
 
-    // Helper pour remplacer les formules {{...}} par leur résultat calculé
+    // UPDATED: Use centralized processor
     const processText = (text: string, ctx: any) => {
-        return text.replace(/\{\{(.*?)\}\}/g, (_, formula) => {
-            try {
-                const val = evaluateFormula(formula, ctx);
-                return Math.floor(val).toString();
-            } catch (e) { return '?'; }
-        });
+        return processDynamicText(text, ctx);
     };
 
     const activeSetsDetails = useMemo(() => {
